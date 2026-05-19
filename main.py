@@ -47,26 +47,6 @@ def init_db():
 # Eseguiamo l'inizializzazione all'avvio
 init_db()
 # --- ROTTE PER LE DOMANDE ---
-@app.get("/scrivi-domanda", response_class=HTMLResponse)
-async def pagina_scrivi_domanda(request: Request):
-    # Controlliamo se l'utente è loggato
-    username = request.cookies.get("session_user")
-    if not username:
-        return RedirectResponse(url="/login")
-
-    # Questo è il form HTML che l'utente vedrà
-    return """
-    <html>
-        <body>
-            <h2>Scrivi la tua domanda alla Taverna</h2>
-            <form action="/invia-domanda" method="post">
-                <textarea name="testo" rows="5" cols="40" placeholder="Scrivi qui..." required></textarea><br>
-                <button type="submit">Invia Domanda</button>
-            </form>
-            <br><a href="/">Torna indietro</a>
-        </body>
-    </html>
-    """
 
 @app.post("/invia-domanda")
 async def invia_domanda(request: Request, testo: str = Form(None)):
