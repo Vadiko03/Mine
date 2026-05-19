@@ -49,18 +49,22 @@ init_db()
 # --- ROTTE PER LE DOMANDE ---
 
 @app.post("/invia-domanda")
-async def invia_domanda(request: Request, testo: str = Form(...)):
-    # Supponiamo che lo username sia salvato nei cookie o nella sessione
-    username = request.session.get("username") 
+async def invia_domanda(request: Request, testo: str = Form(None)):
+    # Recuperiamo l'utente loggato (se presente)
+    username = request.cookies.get("session_user") or "Anonimo"
     
+    # Se il testo è vuoto, avvisiamo l'utente invece di crashare
+    if not testo:
+        return HTMLResponse("Non hai scritto nulla! <a href='/'>Torna indietro</a>")
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Inseriamo solo il testo (lo username lo abbiamo dalla sessione)
     cursor.execute("INSERT INTO domande (username, testo) VALUES (%s, %s)", (username, testo))
     conn.commit()
     cursor.close()
     conn.close()
-    return RedirectResponse(url="/dashboard", status_code=303)
+    
+    return RedirectResponse(url="/", status_code=303)
 
 
 # Sostituisci "TuaPasswordSegreta" con quella che preferisci
