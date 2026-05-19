@@ -51,15 +51,21 @@ ADMIN_PASSWORD = "29102003"
 @app.get("/admin")
 async def admin_page():
     return HTMLResponse("""
-        <html>
-            <body style="font-family: sans-serif; padding: 50px;">
-                <h2>Area Riservata Admin</h2>
-                <form method="post" action="/admin-login">
-                    <input type="password" name="password" placeholder="Password Admin">
-                    <button type="submit">Entra</button>
-                </form>
-            </body>
-        </html>
+        <style>
+            body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+            .card { background: #1e1e1e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0; animation: fadeIn 0.8s forwards; }
+            @keyframes fadeIn { to { opacity: 1; } }
+            input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; }
+            button { width: 100%; padding: 12px; background: #6200ea; color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+            button:hover { background: #3700b3; transform: scale(1.02); }
+        </style>
+        <div class="card">
+            <h2>🔐 Accesso Admin</h2>
+            <form method="post" action="/admin-login">
+                <input type="password" name="password" placeholder="Password Segreta" required>
+                <button type="submit">Entra nel Sistema</button>
+            </form>
+        </div>
     """)
 
 @app.post("/admin-login")
