@@ -71,7 +71,6 @@ async def admin_page():
 @app.post("/admin-login")
 async def admin_login(password: str = Form(...)):
     if password == ADMIN_PASSWORD:
-        # Recuperiamo le domande dal database
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT id, username, testo FROM domande")
@@ -79,16 +78,29 @@ async def admin_login(password: str = Form(...)):
         cursor.close()
         conn.close()
 
-        # Creiamo la tabella HTML al volo
-        html_content = "<h2>Gestione Domande</h2><table border='1'><tr><th>ID</th><th>User</th><th>Domanda</th><th>Azione</th></tr>"
+        # Iniziamo la costruzione dell'HTML con lo stile CSS incluso
+        html_content = """
+        <style>
+            body { font-family: sans-serif; background: #121212; color: #fff; padding: 40px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1e1e1e; border-radius: 10px; overflow: hidden; }
+            th { background: #6200ea; padding: 15px; text-align: left; }
+            td { padding: 15px; border-bottom: 1px solid #333; }
+            tr:hover { background: #2a2a2a; }
+            .btn-del { color: #ff5252; text-decoration: none; font-weight: bold; }
+            .btn-del:hover { text-decoration: underline; }
+            .back-link { display: inline-block; margin-top: 20px; color: #6200ea; text-decoration: none; }
+        </style>
+        <h2>Controllo Operativo</h2>
+        <table>
+            <tr><th>ID</th><th>Utente</th><th>Domanda</th><th>Azione</th></tr>
+        """
         for d in domande:
-            # d[0] è l'ID, d[1] è lo user, d[2] è il testo
-            html_content += f"<tr><td>{d[0]}</td><td>{d[1]}</td><td>{d[2]}</td><td><a href='/delete/{d[0]}'>Elimina</a></td></tr>"
-        html_content += "</table><br><a href='/admin'>Torna indietro</a>"
+            html_content += f"<tr><td>{d[0]}</td><td>{d[1]}</td><td>{d[2]}</td><td><a href='/delete/{d[0]}' class='btn-del'>Elimina</a></td></tr>"
+        html_content += "</table><a href='/admin' class='back-link'>← Logout / Torna al login</a>"
         
         return HTMLResponse(html_content)
     else:
-        return "Password errata! <a href='/admin'>Riprova</a>"
+        return HTMLResponse("<body style='background:#121212; color:white; text-align:center; padding:50px;'>Password errata! <br><a href='/admin'>Riprova</a></body>")
 
 @app.get("/delete/{domanda_id}")
 async def delete_domanda(domanda_id: int):
