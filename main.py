@@ -3,10 +3,14 @@ import psycopg2
 from psycopg2 import errors
 from fastapi import FastAPI, Request, Form, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles # 1. Importa questo per le immagini
 
 app = FastAPI()
 
-# Definiamo la connessione una sola volta, in modo pulito
+# 2. Monta la cartella 'static' per poter usare immagini e file CSS
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Definiamo la connessione una sola volta
 def get_db_connection():
     return psycopg2.connect(os.environ.get("DATABASE_URL"))
 
