@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 import sqlite3
 
@@ -11,8 +11,9 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS utenti (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            email TEXT NOT NULL
+            username TEXT UNIQUE NOT NULL,
+            email TEXT NOT NULL,
+            password TEXT NOT NULL
         )
     """)
     conn.commit()
@@ -23,58 +24,118 @@ init_db()
 # --- PAGINA 1: HOME PAGE (Hub Principale) ---
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request, msg: str = None):
+    # Controllo dello stato di login tramite i cookie di sessione
+    session_user = request.cookies.get("session_user")
+    
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
     cursor.execute("SELECT username FROM utenti ORDER BY id DESC LIMIT 5")
-    ultimi_utenti = [row[0] for row in cursor.fetchall()]
+    utenti_html = "".join([f"<li>{row[0]}</li>" for row in cursor.fetchall()]) or "<li>Nessun player registrato</li>"
     conn.close()
     
-    utenti_html = "".join([f"<li>{u}</li>" for u in ultimi_utenti]) or "<li>Nessun player registrato</li>"
-    alert_box = f'<div style="background:#238636; padding:10px; border-radius:6px; margin-bottom:20px;">{msg}</div>' if msg else ""
+    alert_box = f'<div style="background:#238636; padding:10px; border-radius:6px; margin-bottom:20px; text-align:center; font-weight:bold;">{msg}</div>' if msg else ""
+
+    # Logica dinamica per il Banner Q&A ed i Moduli di Autenticazione
+    if session_user:
+        qa_banner = f"""
+        <div class="card" style="background: linear-gradient(135deg, #1b5e20, #004d40); border: 2px solid #81c784; text-align: center;">
+            <h2 style="color: #a5d6a7; margin-bottom: 10px;">🔓 TAVERNA DEI VETERANI (Q&A ATTIVO)</h2>
+            <p>Salute a te, <b>{session_user}</b>! Sei loggato nel terminale di rete. Puoi accedere liberamente alle domande della community.</p>
+            <a href="#" class="btn btn-green" style="max-width: 300px; margin: 10px auto 0 auto;">Entra nel Forum Q&A (WIP)</a>
+            <a href="/logout" style="display: block; margin-top: 15px; color: #ff5252; text-decoration: underline; font-size: 14px;">Scollega Account / Logout</a>
+        </div>
+        """
+        auth_section = "" # Nasconde i moduli se l'utente è già loggato
+    else:
+        qa_banner = """
+        <div class="card" style="border: 2px dashed #ff5252; text-align: center; background-color: #1a1515; opacity: 0.9;">
+            <h2 style="color: #ff5252; margin-bottom: 10px;">🔒 TAVERNA DEI VETERANI (Q&A PROIBITO)</h2>
+            <p style="color: #b0bec5; margin: 0;">L'accesso alle frequenze radio di Domande & Risposte è riservato. Registrati o effettua il login per sbloccare questo modulo.</p>
+        </div>
+        """
+        auth_section = """
+        <div class="auth-container">
+            <div class="card auth-card">
+                <h2>🎮 Registra Nuovo Profilo</h2>
+                <form action="/register" method="post">
+                    <div class="form-group">
+                        <input type="text" name="username" required placeholder="Username In-Game">
+                    </div>
+                    <div class="form-group">
+                        <input type="email" name="email" required placeholder="Tua Email">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" name="password" required placeholder="Crea Password">
+                    </div>
+                    <button type="submit" class="btn">Registrati nel Database</button>
+                </form>
+            </div>
+
+            <div class="card auth-card" style="background: #141820;">
+                <h2>🔑 Accedi all'Hub</h2>
+                <form action="/login" method="post">
+                    <div class="form-group">
+                        <input type="text" name="username" required placeholder="Username In-Game">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" name="password" required placeholder="La tua Password">
+                    </div>
+                    <button type="submit" class="btn btn-blue">Effettua il Login</button>
+                </form>
+            </div>
+        </div>
+        """
 
     html_content = f"""
     <!DOCTYPE html>
     <html lang="it">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Minecraft Hardcore Survival Hub</title>
         <style>
-            body {{ font-family: 'Segoe UI', sans-serif; background-color: #11141a; color: #e3e6eb; padding: 20px; display: flex; flex-direction: column; align-items: center; }}
-            .container {{ max-width: 650px; width: 100%; }}
+            body {{ font-family: 'Segoe UI', sans-serif; background-color: #11141a; color: #e3e6eb; padding: 15px; display: flex; flex-direction: column; align-items: center; margin: 0; box-sizing: border-box; }}
+            .container {{ max-width: 650px; width: 100%; box-sizing: border-box; }}
             .header {{ text-align: center; padding: 20px; background: linear-gradient(135deg, #b71c1c, #7f0000); border-radius: 12px; margin-bottom: 20px; }}
-            .card {{ background-color: #1c212b; border: 1px solid #2d3545; border-radius: 12px; padding: 25px; margin-bottom: 20px; }}
-            h2 {{ color: #e53935; margin-top: 0; }}
-            .step {{ border-left: 4px solid #e53935; padding-left: 15px; margin-bottom: 20px; }}
+            .card {{ background-color: #1c212b; border: 1px solid #2d3545; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-sizing: border-box; }}
+            h2 {{ color: #e53935; margin-top: 0; font-size: 20px; }}
+            
+            .auth-container {{ display: flex; gap: 15px; flex-wrap: wrap; width: 100%; margin-bottom: 20px; }}
+            .auth-card {{ flex: 1; min-width: 280px; margin-bottom: 0; }}
+            
             .form-group {{ margin-bottom: 15px; }}
-            input {{ width: 100%; padding: 10px; background: #11141a; border: 1px solid #2d3545; border-radius: 6px; color: #fff; box-sizing: border-box; }}
-            .btn {{ background-color: #e53935; color: white; border: none; padding: 12px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; text-decoration: none; display: block; text-align: center; box-sizing: border-box; }}
-            .btn-nav {{ margin-top: 12px; font-size: 15px; }}
+            input {{ width: 100%; padding: 12px; background: #11141a; border: 1px solid #2d3545; border-radius: 6px; color: #fff; box-sizing: border-box; font-size: 16px; }}
+            
+            .btn {{ background-color: #e53935; color: white; border: none; padding: 12px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; text-decoration: none; display: block; text-align: center; box-sizing: border-box; font-size: 15px; }}
+            .btn-nav {{ margin-top: 12px; font-size: 14px; padding: 14px 10px; }}
             .btn-purple {{ background-color: #4a148c; }}
-            .btn-purple:hover {{ background-color: #6a1b9a; }}
             .btn-orange {{ background-color: #e65100; }}
-            .btn-orange:hover {{ background-color: #f57c00; }}
             .btn-green {{ background-color: #1b5e20; }}
-            .btn-green:hover {{ background-color: #2e7d32; }}
             .btn-blue {{ background-color: #0d47a1; }}
-            .btn-blue:hover {{ background-color: #1565c0; }}
             .btn-dark {{ background-color: #37474f; }}
-            .btn-dark:hover {{ background-color: #455a64; }}
             .btn-magenta {{ background-color: #880e4f; }}
-            .btn-magenta:hover {{ background-color: #ad1457; }}
+            
+            @media (max-width: 600px) {{
+                body {{ padding: 10px; }}
+                .header h1 {{ font-size: 20px; }}
+                .card {{ padding: 15px; }}
+            }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
                 <h1>💀 MINECRAFT HARDCORE HUB 💀</h1>
-                <p>Benvenuto Recluta. Scegli il tuo modulo di addestramento.</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">Benvenuto Recluta. Scegli il tuo modulo di addestramento.</p>
             </div>
             
             {alert_box}
+            {qa_banner}
+            {auth_section}
 
             <div class="card">
                 <h2>🗂️ MANUALI DI SOPRAVVIVENZA DISPONIBILI</h2>
-                <p>Clicca sulle guide per studiare le minacce e l'ambiente dell'Overworld:</p>
+                <p style="font-size: 14px; color: #b0bec5;">Clicca sulle guide per studiare le minacce e l'ambiente dell'Overworld:</p>
                 
                 <a href="/guida-avanzata" class="btn btn-nav btn-purple">📖 ACCEDI AL PROTOCOLLO GIORNO 1 (MINUTO PER MINUTO)</a>
                 <a href="/mob-guide" class="btn btn-nav btn-orange">🧟 BESTIARIO: GUIDA AI MOB E MINACCE</a>
@@ -84,28 +145,66 @@ async def root(request: Request, msg: str = None):
                 <a href="/enchants-guide" class="btn btn-nav btn-magenta">🔮 ARCANO: INCANTESIMI PERFETTI (GOD ROLL)</a>
             </div>
 
-            <div class="card">
-                <h2>🎮 Unisciti alla Community dei Sopravvissuti</h2>
-                <form action="/register" method="post">
-                    <div class="form-group">
-                        <input type="text" name="username" required placeholder="Username In-Game">
-                    </div>
-                    <div class="form-group">
-                        <input type="email" name="email" required placeholder="Tua Email">
-                    </div>
-                    <button type="submit" class="btn">Registrati nel Database</button>
-                </form>
-            </div>
-
             <div class="card" style="background: #141820;">
-                <h3>Ultimi Survivalist Registrati:</h3>
-                <ul>{utenti_html}</ul>
+                <h3 style="margin-top: 0; font-size: 16px; color: #90a4ae;">Ultimi Survivalist Registrati:</h3>
+                <ul style="padding-left: 20px; color: #b0bec5; margin-bottom: 0;">{utenti_html}</ul>
             </div>
         </div>
     </body>
     </html>
     """
     return HTMLResponse(content=html_content, status_code=200)
+
+# --- ENDPOINT REGISTRAZIONE ---
+@app.post("/register")
+async def register_user(
+    response: Response,
+    username: str = Form(...), 
+    email: str = Form(...),
+    password: str = Form(...)
+):
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO utenti (username, email, password) VALUES (?, ?, ?)", (username, email, password))
+        conn.commit()
+        msg = f"Grande {username}, registrato con successo!"
+        redirect = RedirectResponse(url=f"/?msg={msg}", status_code=303)
+        # Effettua il login automatico impostando il cookie
+        redirect.set_cookie(key="session_user", value=username, max_age=3600)
+        return redirect
+    except sqlite3.IntegrityError:
+        return RedirectResponse(url="/?msg=Errore:+Username+gia+esistente!", status_code=303)
+    finally:
+        conn.close()
+
+# --- ENDPOINT LOGIN ---
+@app.post("/login")
+async def login_user(
+    response: Response,
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM utenti WHERE username = ? AND password = ?", (username, password))
+    user = cursor.fetchone()
+    conn.close()
+
+    if user:
+        msg = f"Accesso eseguito. Bentornato {user[0]}!"
+        redirect = RedirectResponse(url=f"/?msg={msg}", status_code=303)
+        redirect.set_cookie(key="session_user", value=user[0], max_age=3600)
+        return redirect
+    else:
+        return RedirectResponse(url="/?msg=Credenziali+errate!+Riprova.", status_code=303)
+
+# --- ENDPOINT LOGOUT ---
+@app.get("/logout")
+async def logout_user():
+    redirect = RedirectResponse(url="/?msg=Sessione+chiusa+correttamente.", status_code=303)
+    redirect.delete_cookie("session_user")
+    return redirect
 
 # --- PAGINA 2: GUIDA AVANZATA MINUTO PER MINUTO ---
 @app.get("/guida-avanzata", response_class=HTMLResponse)
@@ -115,25 +214,26 @@ async def guida_avanzata():
     <html lang="it">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Manuale Avanzato Giorno 1</title>
         <style>
-            body { font-family: 'Segoe UI', sans-serif; background-color: #0b0d12; color: #e3e6eb; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-            .container { max-width: 700px; width: 100%; }
+            body { font-family: 'Segoe UI', sans-serif; background-color: #0b0d12; color: #e3e6eb; padding: 15px; display: flex; flex-direction: column; align-items: center; margin: 0; box-sizing: border-box; }
+            .container { max-width: 700px; width: 100%; box-sizing: border-box; }
             .header { text-align: center; padding: 25px; background: linear-gradient(135deg, #4a148c, #880e4f); border-radius: 12px; margin-bottom: 20px; }
-            .card { background-color: #151922; border: 1px solid #252d3d; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
+            .card { background-color: #151922; border: 1px solid #252d3d; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-sizing: border-box; }
             h2 { color: #ba68c8; margin-top: 0; }
             .timeline-step { border-left: 3px dashed #ba68c8; padding-left: 15px; margin-bottom: 25px; }
             .time-title { color: #e1bee7; font-weight: bold; margin: 0 0 5px 0; }
-            .desc { color: #b0bec5; line-height: 1.6; margin: 0; }
-            .btn { background-color: #37474f; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
-            .btn:hover { background-color: #455a64; }
+            .desc { color: #b0bec5; line-height: 1.6; margin: 0; font-size: 15px; }
+            .btn { background-color: #37474f; color: white; border: none; padding: 12px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; }
+            @media (max-width: 600px) { .header h1 { font-size: 18px; } .card { padding: 15px; } }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
                 <h1>📖 PROTOCOLLO DI SOPRAVVIVENZA DETTAGLIATO</h1>
-                <p>La timeline ufficiale dei primi 20 minutes di gioco</p>
+                <p style="margin:5px 0 0 0;">La timeline ufficiale dei primi 20 minutes di gioco</p>
             </div>
 
             <div class="card">
@@ -154,7 +254,7 @@ async def guida_avanzata():
     """
     return HTMLResponse(content=html_content, status_code=200)
 
-# --- PAGINA 3: GUIDA AI MOB (Aggiornata e Scremata) ---
+# --- PAGINA 3: GUIDA AI MOB ---
 @app.get("/mob-guide", response_class=HTMLResponse)
 async def mob_guide():
     html_content = """
@@ -162,33 +262,38 @@ async def mob_guide():
     <html lang="it">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Bestiario Overworld - Hardcore Tactical</title>
         <style>
-            body { font-family: 'Segoe UI', sans-serif; background-color: #0c0f14; color: #e3e6eb; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-            .container { max-width: 750px; width: 100%; }
-            .header { text-align: center; padding: 25px; background: linear-gradient(135deg, #e65100, #bf360c); border-radius: 12px; margin-bottom: 20px; }
-            .card { background-color: #171c26; border: 1px solid #2d374a; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
-            h2 { color: #ffb74d; margin-top: 0; border-bottom: 1px solid #2d374a; padding-bottom: 8px; margin-bottom: 20px; }
+            body { font-family: 'Segoe UI', sans-serif; background-color: #0c0f14; color: #e3e6eb; padding: 15px; display: flex; flex-direction: column; align-items: center; margin: 0; box-sizing: border-box; }
+            .container { max-width: 750px; width: 100%; box-sizing: border-box; }
+            .header { text-align: center; padding: 20px; background: linear-gradient(135deg, #e65100, #bf360c); border-radius: 12px; margin-bottom: 20px; }
+            .card { background-color: #171c26; border: 1px solid #2d374a; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-sizing: border-box; }
+            h2 { color: #ffb74d; margin-top: 0; border-bottom: 1px solid #2d374a; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; }
             .mob-entry { margin-bottom: 30px; padding-left: 15px; border-left: 4px solid #ff9800; }
-            .mob-name { font-weight: bold; color: #ffa726; font-size: 20px; display: block; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+            .mob-name { font-weight: bold; color: #ffa726; font-size: 18px; display: block; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
             .danger-high { border-left-color: #d32f2f; }
             .danger-high .mob-name { color: #f44336; }
             .field-row { display: flex; margin: 8px 0; font-size: 15px; line-height: 1.5; align-items: flex-start; }
-            .field-label { font-weight: bold; color: #cfd8dc; width: 160px; flex-shrink: 0; }
+            .field-label { font-weight: bold; color: #cfd8dc; width: 140px; flex-shrink: 0; }
             .field-val { color: #b0bec5; flex-grow: 1; }
             .highlight-red { color: #ff5252; font-weight: bold; }
-            .btn { background-color: #37474f; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
-            .btn:hover { background-color: #455a64; }
+            .btn { background-color: #37474f; color: white; border: none; padding: 12px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+            
+            @media (max-width: 600px) {
+                .field-row { flex-direction: column; }
+                .field-label { width: 100%; margin-bottom: 2px; }
+                .header h1 { font-size: 18px; }
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
                 <h1>🧟 SCHEDE TATTICHE DEI MOB (DIFFICOLTÀ HARDCORE)</h1>
-                <p>Analisi balistica dei rompicoglioni e delle risorse utili. Niente contorni inutile.</p>
+                <p style="margin:5px 0 0 0; font-size:14px;">Analisi balistica dei rompicoglioni e delle risorse utili. Niente contorni inutili.</p>
             </div>
 
-            <!-- FONDAMENTALI DEL SOPRAMONDO -->
             <div class="card">
                 <h2>🚨 FONDAMENTALI DEL SOPRAMONDO (CHI TI VUOLE MORTO)</h2>
                 <div class="mob-entry danger-high">
@@ -208,7 +313,6 @@ async def mob_guide():
                 </div>
             </div>
 
-            <!-- PERICOLI DEL NETHER & END -->
             <div class="card">
                 <h2>🔥 INFERNO E FINE (NETHER & END)</h2>
                 <div class="mob-entry danger-high">
@@ -223,7 +327,6 @@ async def mob_guide():
                 </div>
             </div>
 
-            <!-- I PEZZI GROSSI -->
             <div class="card">
                 <h2>👑 I PEZZI GROSSI (BOSS FIGHTS & BESTIE)</h2>
                 <div class="mob-entry danger-high">
@@ -238,7 +341,6 @@ async def mob_guide():
                 </div>
             </div>
 
-            <!-- ECONOMIA E LOGISTICA -->
             <div class="card">
                 <h2>💼 I MOB UTILI (ECONOMIA E STRATEGIA)</h2>
                 <div class="mob-entry" style="border-left-color: #4caf50;">
@@ -263,31 +365,37 @@ async def biomi_guide():
     <html lang="it">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Cartografia Overworld - Hardcore Full Guide</title>
         <style>
-            body { font-family: 'Segoe UI', sans-serif; background-color: #0c0f14; color: #e3e6eb; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-            .container { max-width: 800px; width: 100%; }
+            body { font-family: 'Segoe UI', sans-serif; background-color: #0c0f14; color: #e3e6eb; padding: 15px; display: flex; flex-direction: column; align-items: center; margin: 0; box-sizing: border-box; }
+            .container { max-width: 800px; width: 100%; box-sizing: border-box; }
             .header { text-align: center; padding: 25px; background: linear-gradient(135deg, #1b5e20, #004d40); border-radius: 12px; margin-bottom: 20px; }
-            .card { background-color: #171c26; border: 1px solid #2d374a; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
-            h2 { color: #81c784; margin-top: 0; border-bottom: 1px solid #2d374a; padding-bottom: 8px; margin-bottom: 25px; }
+            .card { background-color: #171c26; border: 1px solid #2d374a; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-sizing: border-box; }
+            h2 { color: #81c784; margin-top: 0; border-bottom: 1px solid #2d374a; padding-bottom: 8px; margin-bottom: 25px; font-size: 18px; }
             .biome-entry { margin-bottom: 30px; padding-left: 15px; border-left: 4px solid #4caf50; }
-            .biome-name { font-weight: bold; color: #a5d6a7; font-size: 19px; display: block; margin-bottom: 10px; text-transform: uppercase; }
+            .biome-name { font-weight: bold; color: #a5d6a7; font-size: 18px; display: block; margin-bottom: 10px; text-transform: uppercase; }
             .biome-neutral { border-left-color: #ffb74d; }
             .biome-neutral .biome-name { color: #ffe082; }
             .biome-danger { border-left-color: #e53935; }
             .biome-danger .biome-name { color: #ef5350; }
             .b-row { display: flex; margin: 5px 0; font-size: 15px; }
-            .b-label { font-weight: bold; color: #cfd8dc; width: 150px; flex-shrink: 0; }
+            .b-label { font-weight: bold; color: #cfd8dc; width: 130px; flex-shrink: 0; }
             .b-val { color: #b0bec5; flex-grow: 1; }
             .btn { background-color: #37474f; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
-            .btn:hover { background-color: #455a64; }
+            
+            @media (max-width: 600px) {
+                .b-row { flex-direction: column; }
+                .b-label { width: 100%; margin-bottom: 2px; }
+                .header h1 { font-size: 18px; }
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
                 <h1>🌲 ENCICLOPEDIA DEI BIOMI OVERWORLD</h1>
-                <p>Analisi sistematica di ogni ambiente, risorse disponibili, strutture e fattori di rischio.</p>
+                <p style="margin:5px 0 0 0; font-size:14px;">Analisi sistematica di ogni ambiente, risorse disponibili, strutture e fattori di rischio.</p>
             </div>
 
             <div class="card">
@@ -295,7 +403,7 @@ async def biomi_guide():
                 <div class="biome-entry">
                     <span class="biome-name">Pianura (Plains / Sunflower Plains)</span>
                     <div class="b-row"><span class="b-label">Cosa trovi:</span><span class="b-val">Mucche, pecore, maiali, cavalli, api, fiumi.</span></div>
-                    <div class="b-row"><span class="b-label">Strutture:</span><span class="b-val">Villaggi (altissima probabilità), avamposti dei predoni.</span></div>
+                    <div class="b-row"><span class="b-label">Strutture:</span><span class="b-val">Villaggi (altissima probabilità), avamposto dei predoni.</span></div>
                     <div class="b-row"><span class="b-label">Fattore Rischio:</span><span class="b-val">Molto basso. Visibilità totale di notte.</span></div>
                 </div>
                 <div class="biome-entry">
@@ -395,35 +503,39 @@ async def craft_guide():
     <html lang="it">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Officina Hardcore - Crafting Consigliati</title>
         <style>
-            body { font-family: 'Segoe UI', sans-serif; background-color: #090c10; color: #e3e6eb; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-            .container { max-width: 750px; width: 100%; }
+            body { font-family: 'Segoe UI', sans-serif; background-color: #090c10; color: #e3e6eb; padding: 15px; display: flex; flex-direction: column; align-items: center; margin: 0; box-sizing: border-box; }
+            .container { max-width: 750px; width: 100%; box-sizing: border-box; }
             .header { text-align: center; padding: 25px; background: linear-gradient(135deg, #0d47a1, #002171); border-radius: 12px; margin-bottom: 20px; }
-            .card { background-color: #171c26; border: 1px solid #2d374a; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
-            h2 { color: #64b5f6; margin-top: 0; border-bottom: 1px solid #2d374a; padding-bottom: 8px; margin-bottom: 25px; }
+            .card { background-color: #171c26; border: 1px solid #2d374a; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-sizing: border-box; }
+            h2 { color: #64b5f6; margin-top: 0; border-bottom: 1px solid #2d374a; padding-bottom: 8px; margin-bottom: 25px; font-size: 18px; }
             
             .craft-entry { margin-bottom: 35px; border-bottom: 1px dashed #2d374a; padding-bottom: 25px; }
             .craft-entry:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-            .craft-name { font-weight: bold; color: #90caf9; font-size: 20px; display: block; margin-bottom: 8px; text-transform: uppercase; }
+            .craft-name { font-weight: bold; color: #90caf9; font-size: 19px; display: block; margin-bottom: 8px; text-transform: uppercase; }
             .craft-desc { color: #b0bec5; font-size: 15px; margin-bottom: 15px; line-height: 1.4; }
             
-            .craft-box { display: flex; gap: 20px; align-items: center; background: #0f131a; padding: 15px; border-radius: 8px; border: 1px solid #21262d; }
+            .craft-box { display: flex; gap: 20px; align-items: center; background: #0f131a; padding: 15px; border-radius: 8px; border: 1px solid #21262d; flex-wrap: wrap; }
             .materials-list { font-size: 14px; color: #cfd8dc; line-height: 1.6; }
             
-            .grid-3x3 { display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(3, 60px); gap: 4px; background: #444; padding: 6px; border-radius: 4px; flex-shrink: 0; width: 188px; }
-            .grid-cell { background: #8b8b8b; border: 2px solid #3c3c3c; border-top-color: #b5b5b5; border-left-color: #b5b5b5; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #111; text-align: center; font-family: monospace; word-wrap: break-word; overflow: hidden; padding: 2px; text-shadow: 1px 1px 0px #aaa; }
+            .grid-3x3 { display: grid; grid-template-columns: repeat(3, 55px); grid-template-rows: repeat(3, 55px); gap: 4px; background: #444; padding: 6px; border-radius: 4px; flex-shrink: 0; width: 173px; }
+            .grid-cell { background: #8b8b8b; border: 2px solid #3c3c3c; border-top-color: #b5b5b5; border-left-color: #b5b5b5; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #111; text-align: center; font-family: monospace; word-wrap: break-word; overflow: hidden; padding: 2px; text-shadow: 1px 1px 0px #aaa; }
             .grid-cell:empty { background: #8b8b8b; }
-            
             .btn { background-color: #37474f; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
-            .btn:hover { background-color: #455a64; }
+            
+            @media (max-width: 600px) {
+                .header h1 { font-size: 18px; }
+                .craft-box { justify-content: center; }
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
                 <h1>🛠️ OFFICINA HARDCORE: ARTIGIANATO SALVAVITA</h1>
-                <p>La disposition esatta dei blocchi nella tavola da crafting per gli oggetti indispensabili.</p>
+                <p style="margin:5px 0 0 0; font-size:14px;">La disposition esatta dei blocchi nella tavola da crafting per gli oggetti indispensabili.</p>
             </div>
 
             <div class="card">
@@ -514,33 +626,32 @@ async def farms_guide():
     <html lang="it">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Automazione Hardcore - Farm Semplici</title>
         <style>
-            body { font-family: 'Segoe UI', sans-serif; background-color: #0e1117; color: #e3e6eb; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-            .container { max-width: 750px; width: 100%; }
+            body { font-family: 'Segoe UI', sans-serif; background-color: #0e1117; color: #e3e6eb; padding: 15px; display: flex; flex-direction: column; align-items: center; margin: 0; box-sizing: border-box; }
+            .container { max-width: 750px; width: 100%; box-sizing: border-box; }
             .header { text-align: center; padding: 25px; background: linear-gradient(135deg, #37474f, #21272a); border-radius: 12px; margin-bottom: 20px; border: 1px solid #455a64; }
-            .card { background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
-            h2 { color: #cfd8dc; margin-top: 0; border-bottom: 1px solid #30363d; padding-bottom: 8px; margin-bottom: 25px; }
+            .card { background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-sizing: border-box; }
+            h2 { color: #cfd8dc; margin-top: 0; border-bottom: 1px solid #30363d; padding-bottom: 8px; margin-bottom: 25px; font-size: 18px; }
             
-            .farm-entry { margin-bottom: 35px; border-left: 4px solid #81c784; padding-left: 20px; }
-            .farm-name { font-weight: bold; color: #a5d6a7; font-size: 20px; display: block; margin-bottom: 6px; text-transform: uppercase; }
+            .farm-entry { margin-bottom: 35px; border-left: 4px solid #81c784; padding-left: 15px; }
+            .farm-name { font-weight: bold; color: #a5d6a7; font-size: 19px; display: block; margin-bottom: 6px; text-transform: uppercase; }
             .farm-meta { font-size: 14px; color: #ffb74d; margin-bottom: 12px; font-weight: 500; }
             .farm-text { color: #b0bec5; font-size: 15px; line-height: 1.5; margin-bottom: 10px; }
             
-            .steps-box { background: #0d1117; padding: 15px; border-radius: 8px; border: 1px solid #21262d; margin-top: 10px; }
-            .steps-box ul { margin: 0; padding-left: 20px; color: #e3e6eb; font-size: 14px; line-height: 1.6; }
+            .steps-box { background: #0d1117; padding: 15px; border-radius: 8px; border: 1px solid #21262d; margin-top: 10px; box-sizing: border-box; }
+            .steps-box ul { margin: 0; padding-left: 15px; color: #e3e6eb; font-size: 14px; line-height: 1.6; }
             .steps-box li { margin-bottom: 6px; }
-            .steps-box li:last-child { margin-bottom: 0; }
-            
             .btn { background-color: #37474f; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
-            .btn:hover { background-color: #455a64; }
+            @media (max-width: 600px) { .header h1 { font-size: 18px; } }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h1>⚙️ PROTOCOLLI DI AUTOMAZIONE: FARM VITALI</h1>
-                <p>3 strutture banali da tirare su in 5 minuti per assicurarti risorse infinite senza rischiare la vita.</p>
+                <h1>⚙️ PROTOCOLLO DI AUTOMAZIONE: FARM VITALI</h1>
+                <p style="margin:5px 0 0 0; font-size:14px;">3 strutture banali da tirare su in 5 minuti per assicurarti risorse infinite senza rischiare la vita.</p>
             </div>
 
             <div class="card">
@@ -606,7 +717,7 @@ async def farms_guide():
     """
     return HTMLResponse(content=html_content, status_code=200)
 
-# --- PAGINA 7: GUIDA AGLI INCANTESIMI AL MASSIMO ---
+# --- PAGINA 7: GUIDA AGLI INCANTESIMI ---
 @app.get("/enchants-guide", response_class=HTMLResponse)
 async def enchants_guide():
     html_content = """
@@ -614,39 +725,38 @@ async def enchants_guide():
     <html lang="it">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Grimorio degli Incantesimi Perfetti - Hardcore Edition</title>
         <style>
-            body { font-family: 'Segoe UI', sans-serif; background-color: #0d0914; color: #e3e6eb; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-            .container { max-width: 780px; width: 100%; }
+            body { font-family: 'Segoe UI', sans-serif; background-color: #0d0914; color: #e3e6eb; padding: 15px; display: flex; flex-direction: column; align-items: center; margin: 0; box-sizing: border-box; }
+            .container { max-width: 780px; width: 100%; box-sizing: border-box; }
             .header { text-align: center; padding: 25px; background: linear-gradient(135deg, #4a148c, #6a1b9a); border-radius: 12px; margin-bottom: 20px; border: 1px solid #7b1fa2; }
-            .card { background-color: #161224; border: 1px solid #3c245c; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
-            h2 { color: #e1bee7; margin-top: 0; border-bottom: 1px solid #3c245c; padding-bottom: 8px; margin-bottom: 25px; text-transform: uppercase; font-size: 20px; }
+            .card { background-color: #161224; border: 1px solid #3c245c; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-sizing: border-box; }
+            h2 { color: #e1bee7; margin-top: 0; border-bottom: 1px solid #3c245c; padding-bottom: 8px; margin-bottom: 25px; text-transform: uppercase; font-size: 18px; }
             
-            .gear-box { background: #211a36; border: 1px solid #4a3475; padding: 18px; border-radius: 8px; margin-bottom: 20px; }
-            .gear-title { font-weight: bold; color: #f3e5f5; font-size: 17px; display: block; margin-bottom: 10px; border-left: 3px solid #ba68c8; padding-left: 10px; }
+            .gear-box { background: #211a36; border: 1px solid #4a3475; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+            .gear-title { font-weight: bold; color: #f3e5f5; font-size: 16px; display: block; margin-bottom: 10px; border-left: 3px solid #ba68c8; padding-left: 10px; }
             
-            .enchant-badge { display: inline-block; background: #4a148c; color: #f3e5f5; font-size: 13px; font-weight: bold; padding: 4px 8px; border-radius: 4px; margin: 4px 4px 4px 0; font-family: monospace; border: 1px solid #7b1fa2; }
+            .enchant-badge { display: inline-block; background: #4a148c; color: #f3e5f5; font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 4px; margin: 4px 4px 4px 0; font-family: monospace; border: 1px solid #7b1fa2; }
             .enchant-badge.meta { background: #880e4f; border-color: #c2185b; }
             
-            .strat-list { padding-left: 20px; font-size: 15px; color: #b0bec5; line-height: 1.6; }
+            .strat-list { padding-left: 15px; font-size: 15px; color: #b0bec5; line-height: 1.6; }
             .strat-list li { margin-bottom: 10px; }
             .highlight-purple { color: #ce93d8; font-weight: bold; }
-            
             .btn { background-color: #37474f; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
-            .btn:hover { background-color: #455a64; }
+            @media (max-width: 600px) { .header h1 { font-size: 18px; } }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
                 <h1>🔮 IL GRIMORIO DEGLI INCANTESIMI PERFETTI (GOD ROLLS)</h1>
-                <p>La lista definitiva delle combinazioni massime e la strategia infallibile dei Villager per ottenerle al 100%.</p>
+                <p style="margin:5px 0 0 0; font-size:14px;">La lista definitiva delle combinazioni massime e la strategia infallibile dei Villager per ottenerle al 100%.</p>
             </div>
 
-            <!-- SEZIONE 1: I PEZZI PERFETTI -->
             <div class="card">
                 <h2>🛡️ I SET COMPLETI AL LIVELLO MASSIMO</h2>
-                <p style="color:#b0bec5; margin-top:0;">Ecco gli incantesimi precisi da schiaffare su ogni pezzo per azzerare i rischi di morte:</p>
+                <p style="color:#b0bec5; margin-top:0; font-size:14px;">Ecco gli incantesimi precisi da schiaffare su ogni pezzo per azzerare i rischi di morte:</p>
 
                 <div class="gear-box">
                     <span class="gear-title">🪖 Elmo (Helmet)</span>
@@ -694,10 +804,9 @@ async def enchants_guide():
                 </div>
             </div>
 
-            <!-- SEZIONE 2: LA STRATEGIA INFALLIBILE -->
             <div class="card">
                 <h2>📈 STRATEGIA: RECLUTAMENTO DEI BIBLIOTECARI (NO RANDOM)</h2>
-                <p style="color:#b0bec5; margin-top:0;">Affidarsi alla Tavola degli Incantesimi è un suicidio di risorse. La vera tattica Hardcore prevede l'abuso dei <span class="highlight-purple">Villager Bibliotecari</span>:</p>
+                <p style="color:#b0bec5; margin-top:0; font-size:14px;">Affidarsi alla Tavola degli Incantesimi è un suicidio di risorse. La vera tattica Hardcore prevede l'abuso dei <span class="highlight-purple">Villager Bibliotecari</span>:</p>
                 
                 <ul class="strat-list">
                     <li><span class="highlight-purple">Il Ciclo del Leggìo (Lectern):</span> Intrappola un villager disoccupato in uno spazio 1x2. Piazza un Leggìo davanti a lui per farlo diventare Bibliotecario. Controlla il suo primo libro in vendita. Se NON è quello che vuoi (es. cerchi Mending o Protezione IV), rompi il leggìo con l'ascia e ripiazzalo subito. Il villager cambierà istantaneamente inventario. Ripeti finché non esce il libro perfetto.</li>
@@ -712,13 +821,3 @@ async def enchants_guide():
     </html>
     """
     return HTMLResponse(content=html_content, status_code=200)
-
-# --- ENDPOINT REGISTRAZIONE ---
-@app.post("/register")
-async def register_user(username: str = Form(...), email: str = Form(...)):
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO utenti (username, email) VALUES (?, ?)", (username, email))
-    conn.commit()
-    conn.close()
-    return RedirectResponse(url=f"/?msg=Grande+{username},+registrato+con+successo!", status_code=303)
