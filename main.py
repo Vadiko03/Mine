@@ -380,10 +380,9 @@ async def invia_domanda(request: Request, testo_domanda: str = Form(...)):
     if not session_user:
         return RedirectResponse(url="/?msg=Errore:+Devi+effettuare+il+login!", status_code=303)
         
-    # Usa la funzione che abbiamo creato per Neon
-conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO domande (username, testo) VALUES (?, ?)", (session_user, testo_domanda))
+    conn = get_db_connection()
+    cursor = conn.cursor()  # <-- Allineato perfettamente a sinistra con conn = ...
+    cursor.execute("INSERT INTO domande (username, testo) VALUES (%s, %s)", (session_user, testo_domanda))
     conn.commit()
     conn.close()
     
