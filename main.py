@@ -19,7 +19,7 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Creazione tabelle con PostgreSQL
+    # La tabella utenti resta com'è
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS utenti (
             id SERIAL PRIMARY KEY,
@@ -29,11 +29,14 @@ def init_db():
         )
     """)
     
+    # MODIFICA: Aggiungiamo le colonne 'email' e 'risposta' qui
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS domande (
             id SERIAL PRIMARY KEY,
             username TEXT NOT NULL,
-            testo TEXT NOT NULL
+            email TEXT,
+            testo TEXT NOT NULL,
+            risposta TEXT
         )
     """)
     
