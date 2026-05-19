@@ -126,18 +126,23 @@ async def invia_risposta(domanda_id: int, risposta: str = Form(...)):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 1. Recuperiamo l'email
-    cursor.execute("SELECT email FROM domande WHERE id = %s", (domanda_id,))
-    result = cursor.fetchone()
-    email_destinatario = result[0] if result else "nessuna@email.com"
+    # 1. Trova l'utente che ha fatto la domanda
+    cursor.execute("SELECT username FROM domande WHERE id = %s", (domanda_id,))
+    username = cursor.fetchone()[0]
     
-    # 2. Aggiorniamo il database
+    # 2. Trova l'email di quell'utente nella tabella 'utenti'
+    cursor.execute("SELECT email FROM utenti WHERE username = %s", (username,))
+    email_destinatario = cursor.fetchone()[0]
+    
+    # 3. Salva la risposta nella tabella domande
     cursor.execute("UPDATE domande SET risposta = %s WHERE id = %s", (risposta, domanda_id))
     conn.commit()
     
+    # Ora 'email_destinatario' contiene l'email corretta!
+    # invia_email_brevo(email_destinatario, risposta) 
+    
     cursor.close()
     conn.close()
-    
     return RedirectResponse(url="/admin", status_code=303)
 @app.get("/delete/{domanda_id}")
 async def delete_domanda(domanda_id: int):
