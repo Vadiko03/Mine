@@ -46,7 +46,7 @@ init_db()
 ADMIN_PASSWORD = "29102003"
 
 # Sostituisci "TuaPasswordSegreta" con quella che preferisci
-ADMIN_PASSWORD = "TuaPasswordSegreta"
+ADMIN_PASSWORD = "29102003"
 
 @app.get("/admin")
 async def admin_page():
@@ -65,10 +65,34 @@ async def admin_page():
 @app.post("/admin-login")
 async def admin_login(password: str = Form(...)):
     if password == ADMIN_PASSWORD:
-        # Se la password è giusta, qui visualizzeremo le domande
-        return "Accesso effettuato! (Prossimo step: aggiungere le domande qui)"
+        # Recuperiamo le domande dal database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, testo FROM domande")
+        domande = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        # Creiamo la tabella HTML al volo
+        html_content = "<h2>Gestione Domande</h2><table border='1'><tr><th>ID</th><th>User</th><th>Domanda</th><th>Azione</th></tr>"
+        for d in domande:
+            # d[0] è l'ID, d[1] è lo user, d[2] è il testo
+            html_content += f"<tr><td>{d[0]}</td><td>{d[1]}</td><td>{d[2]}</td><td><a href='/delete/{d[0]}'>Elimina</a></td></tr>"
+        html_content += "</table><br><a href='/admin'>Torna indietro</a>"
+        
+        return HTMLResponse(html_content)
     else:
         return "Password errata! <a href='/admin'>Riprova</a>"
+
+@app.get("/delete/{domanda_id}")
+async def delete_domanda(domanda_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM domande WHERE id = %s", (domanda_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return HTMLResponse("Domanda eliminata! <br> <a href='/admin'>Torna al pannello</a>")
 
 # --- PAGINA 1: HOME PAGE (Hub Principale) ---
 @app.get("/", response_class=HTMLResponse)
