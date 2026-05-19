@@ -11,9 +11,10 @@ def get_db_connection():
     return psycopg2.connect(os.environ.get("DATABASE_URL"))
 
 # Funzione per connettersi al database esterno
+# Funzione per connettersi al database esterno
 def get_db_connection():
     # sslmode=require è necessario per la connessione sicura con Neon
-    return psycopg2.connect(DATABASE_URL)
+    return psycopg2.connect(os.environ.get("DATABASE_URL"))
 
 # --- INIZIALIZZAZIONE ---
 def init_db():
@@ -337,11 +338,9 @@ async def root(request: Request, msg: str = None):
 # --- ENDPOINT REGISTRAZIONE ---
 @app.post("/register")
 async def register_user(response: Response, username: str = Form(...), email: str = Form(...), password: str = Form(...)):
-    # Usa la funzione che abbiamo creato per Neon
-conn = get_db_connection()
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Sostituisci i punti interrogativi (?) con %s
         cursor.execute("INSERT INTO utenti (username, email, password) VALUES (%s, %s, %s)", (username, email, password))
         conn.commit()
         msg = f"Grande {username}, registrato con successo!"
