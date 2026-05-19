@@ -122,12 +122,19 @@ async def root(request: Request, msg: str = None):
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Minecraft Hardcore Survival Hub</title>
         <style>
-            /* Reset generale e centramento forzato del body */
+            /* Reset generale e sfondo di Minecraft a schermo intero fisso */
             body {{ 
                 font-family: 'Segoe UI', sans-serif; 
-                background-color: #11141a; 
+                
+                /* Immagine di sfondo con un leggero filtro scuro per leggere bene i testi bianchi */
+                background-image: linear-gradient(rgba(17, 20, 26, 0.75), rgba(17, 20, 26, 0.75)), url('https://wallpapers.com/images/featured-full/sfondo-di-minecraft-cfljc4haleghnajo.jpg'); 
+                background-size: cover;
+                background-attachment: fixed;
+                background-position: center;
+                background-repeat: no-repeat;
+                
                 color: #e3e6eb; 
-                padding: 10px; /* Ridotto per mobile */
+                padding: 10px; 
                 display: flex; 
                 flex-direction: column; 
                 align-items: center; 
