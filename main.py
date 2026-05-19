@@ -1,33 +1,45 @@
-from fastapi import FastAPI, Request, Form, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
-import sqlite3
+import os
+import psycopg2
+from fastapi import FastAPI, Request
 
 app = FastAPI()
 
-# --- LOGICA DEL DATABASE ---
+# Leggiamo l'indirizzo del database dalle variabili d'ambiente di Render
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# Funzione per connettersi al database esterno
+def get_db_connection():
+    # sslmode=require è necessario per la connessione sicura con Neon
+    return psycopg2.connect(DATABASE_URL)
+
+# --- INIZIALIZZAZIONE ---
 def init_db():
-    conn = sqlite3.connect("database.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
-    # Tabella utenti
+    
+    # In PostgreSQL si usa SERIAL per l'auto-incremento
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS utenti (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
             email TEXT NOT NULL,
             password TEXT NOT NULL
         )
     """)
-    # Tabella per salvare le domande della Taverna
+    
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS domande (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             username TEXT NOT NULL,
             testo TEXT NOT NULL
         )
     """)
+    
     conn.commit()
+    cursor.close()
     conn.close()
 
+# Eseguiamo l'inizializzazione all'avvio
 init_db()
 
 # --- PAGINA 1: HOME PAGE (Hub Principale) ---
@@ -37,7 +49,7 @@ async def root(request: Request, msg: str = None):
     # Controllo dello stato di login tramite i cookie di sessione
     session_user = request.cookies.get("session_user")
     
-    conn = sqlite3.connect("database.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     # 1. Recupera gli ultimi 5 utenti registrati
