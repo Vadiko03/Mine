@@ -1,0 +1,33 @@
+﻿{
+  "titolo_guida": "⏱️ CRONACHE DEL GIORNO 1: GUIDA MINUTO PER MINUTO",
+  "step": [
+    {
+      "fase": "Minuto 0:00 - Lo Spawn (Il Risveglio)",
+      "descrizione": "Appena sblocchi gli occhi, guardati intorno. Memorizza le coordinate (premi F3). Cerca subito alberi. Se sei in mezzo a un deserto o su un'isola deserta, comincia a correre verso un bioma con la legna. Non c'è tempo da perdere, il sole si muove veloce."
+    },
+    {
+      "fase": "Minuto 1:30 - Il Primo Sangue (Arboreo)",
+      "descrizione": "Tira giù almeno 3-4 alberi a mani nude. Trasforma i tronchi in assi di legno, pianta una Crafting Table e fai subito un piccone di legno. Cerca la pietra prima possibile (scava verso il basso a scaletta o cerca una parete di roccia)."
+    },
+    {
+      "fase": "Minuto 3:00 - L'Età della Pietra & Caccia",
+      "descrizione": "Scava 3 blocchi di pietra e crafta IMMEDIATAMENTE il piccone di pietra. Butta via quello di legno (o usalo come combustibile). Tira giù altra pietra per fare: ascia, spada e una fornace. Se vedi pecore lungo la strada, uccidile: ti servono 3 blocchi di lana dello stesso colore per il letto. La lana è VITA."
+    },
+    {
+      "fase": "Minuto 6:00 - Il Carburante e i Carboidrati",
+      "descrizione": "Il sole comincia a scendere. Se hai trovato il carbone bene, sennò usa l'ascia per fare altro legno e brucia i tronchi nella fornace usando le assi per fare la carbonella (Charcoal). Ammazza mucche, maiali o galline e cuoci la carne. Non mangiare robba cruda in Hardcore, sprechi saturazione."
+    },
+    {
+      "fase": "Minuto 9:00 - Coprifuoco (Il Tramonto)",
+      "descrizione": "Il cielo diventa arancione. Se hai il letto, piazzalo e clicca a ripetizione per dormire istantaneamente e skippare la notte. Se NON hai la lana, non combattere. Scava un buco 1x1 profondo tre blocchi sotto i tuoi piedi, tappati la testa con un blocco di terra e aspetta. Sentirai i rumori dei mob da fuori, ma sei al sicuro."
+    },
+    {
+      "fase": "Minuto 10:00 - La Lunga Notte (Sotto Terra)",
+      "descrizione": "Se sei chiuso nel buco, non stare fermo a piangere. Sfrutta le cuffie per sentire dove sono i mob (ti dice se sopra c'è una caverna). Scava una piccola miniera a scaletta verso il basso per cercare ferro e altro carbone. Ricordati di illuminare sempre tutto, o i mob ti spawneranno alle spalle dentro la tua stessa galleria."
+    },
+    {
+      "fase": "Minuto 20:00 - L'Alba del Secondo Giorno",
+      "descrizione": "Senti i rumori dei baci bruciati (gli zombie e gli scheletri che prendono fuoco). Scava verso l'alto con cautela. Guarda il cielo: se il sole è alto, esci, raccogli il drop dei mob morti e comincia a pianificare la tua base permanente. Sopravvissuto!"
+    }
+  ]
+}
