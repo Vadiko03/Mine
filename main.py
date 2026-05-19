@@ -356,10 +356,11 @@ async def register_user(response: Response, username: str = Form(...), email: st
 # --- ENDPOINT LOGIN ---
 @app.post("/login")
 async def login_user(response: Response, username: str = Form(...), password: str = Form(...)):
-    # Usa la funzione che abbiamo creato per Neon
-conn = get_db_connection()
+    # Tutto il codice qui sotto deve essere indentato di 4 spazi!
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT username FROM utenti WHERE username = ? AND password = ?", (username, password))
+    # ATTENZIONE: Usa %s invece di ? per PostgreSQL
+    cursor.execute("SELECT username FROM utenti WHERE username = %s AND password = %s", (username, password))
     user = cursor.fetchone()
     conn.close()
 
