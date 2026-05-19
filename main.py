@@ -88,35 +88,38 @@ async def admin_login(password: str = Form(...)):
     if password == ADMIN_PASSWORD:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, testo FROM domande")
+        cursor.execute("SELECT id, username, email, testo, risposta FROM domande")
         domande = cursor.fetchall()
         cursor.close()
         conn.close()
 
-        # Iniziamo la costruzione dell'HTML con lo stile CSS incluso
         html_content = """
         <style>
-            body { font-family: sans-serif; background: #121212; color: #fff; padding: 40px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1e1e1e; border-radius: 10px; overflow: hidden; }
-            th { background: #6200ea; padding: 15px; text-align: left; }
-            td { padding: 15px; border-bottom: 1px solid #333; }
-            tr:hover { background: #2a2a2a; }
-            .btn-del { color: #ff5252; text-decoration: none; font-weight: bold; }
-            .btn-del:hover { text-decoration: underline; }
-            .back-link { display: inline-block; margin-top: 20px; color: #6200ea; text-decoration: none; }
+            body { font-family: sans-serif; background: #121212; color: white; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; background: #1e1e1e; color: white; }
+            th, td { padding: 15px; border: 1px solid #333; text-align: left; }
+            .risposta-form { display: flex; gap: 5px; }
         </style>
-        <h2>Controllo Operativo</h2>
+        <h2>Gestione Domande</h2>
         <table>
-            <tr><th>ID</th><th>Utente</th><th>Domanda</th><th>Azione</th></tr>
+            <tr><th>User</th><th>Email</th><th>Domanda</th><th>Rispondi</th></tr>
         """
         for d in domande:
-            html_content += f"<tr><td>{d[0]}</td><td>{d[1]}</td><td>{d[2]}</td><td><a href='/delete/{d[0]}' class='btn-del'>Elimina</a></td></tr>"
-        html_content += "</table><a href='/admin' class='back-link'>← Logout / Torna al login</a>"
-        
+            # d[0]=id, d[1]=user, d[2]=email, d[3]=testo, d[4]=risposta
+            html_content += f"""
+            <tr>
+                <td>{d[1]}</td><td>{d[2]}</td><td>{d[3]}</td>
+                <td>
+                    <form action='/invia-risposta/{d[0]}' method='post' class='risposta-form'>
+                        <input type='text' name='risposta' placeholder='Rispondi qui...'>
+                        <button type='submit'>Invia</button>
+                    </form>
+                </td>
+            </tr>"""
+        html_content += "</table><br><a href='/admin'>Torna indietro</a>"
         return HTMLResponse(html_content)
     else:
-        return HTMLResponse("<body style='background:#121212; color:white; text-align:center; padding:50px;'>Password errata! <br><a href='/admin'>Riprova</a></body>")
-
+        return "Password errata!"
 @app.get("/delete/{domanda_id}")
 async def delete_domanda(domanda_id: int):
     # Eseguiamo la cancellazione
