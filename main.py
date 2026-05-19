@@ -46,7 +46,19 @@ def init_db():
 
 # Eseguiamo l'inizializzazione all'avvio
 init_db()
-ADMIN_PASSWORD = "29102003"
+# --- ROTTE PER LE DOMANDE ---
+
+@app.post("/invia-domanda")
+async def invia_domanda(username: str = Form(...), email: str = Form(...), testo: str = Form(...)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # Inseriamo i 3 dati nella tabella 'domande'
+    cursor.execute("INSERT INTO domande (username, email, testo) VALUES (%s, %s, %s)", (username, email, testo))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return RedirectResponse(url="/", status_code=303)
+
 
 # Sostituisci "TuaPasswordSegreta" con quella che preferisci
 ADMIN_PASSWORD = "29102003"
