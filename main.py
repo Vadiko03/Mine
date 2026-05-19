@@ -19,7 +19,7 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # La tabella utenti resta com'è
+    # Creazione tabelle con PostgreSQL
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS utenti (
             id SERIAL PRIMARY KEY,
@@ -29,14 +29,11 @@ def init_db():
         )
     """)
     
-    # MODIFICA: Aggiungiamo le colonne 'email' e 'risposta' qui
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS domande (
             id SERIAL PRIMARY KEY,
             username TEXT NOT NULL,
-            email TEXT,
-            testo TEXT NOT NULL,
-            risposta TEXT
+            testo TEXT NOT NULL
         )
     """)
     
@@ -46,165 +43,32 @@ def init_db():
 
 # Eseguiamo l'inizializzazione all'avvio
 init_db()
-# --- ROTTE PER LE DOMANDE ---
-@app.get("/scrivi-domanda", response_class=HTMLResponse)
-
-async def pagina_scrivi_domanda(request: Request):
-
-    # Controlliamo se l'utente è loggato
-
-    username = request.cookies.get("session_user")
-
-    if not username:
-
-        return RedirectResponse(url="/login")
-
-
-
-    # Questo è il form HTML che l'utente vedrà
-
-    return """
-
-    <html>
-
-        <body>
-
-            <h2>Scrivi la tua domanda alla Taverna</h2>
-
-            <form action="/invia-domanda" method="post">
-
-                <textarea name="testo" rows="5" cols="40" placeholder="Scrivi qui..." required></textarea><br>
-
-                <button type="submit">Invia Domanda</button>
-
-            </form>
-
-            <br><a href="/">Torna indietro</a>
-
-        </body>
-
-    </html>
-
-    """
-
-@app.post("/invia-domanda")
-async def invia_domanda(request: Request, testo: str = Form(None)):
-    # Recuperiamo l'utente
-    username = request.cookies.get("session_user")
-    
-    # Se il testo è vuoto, ignoriamo e torniamo indietro senza errori
-    if not testo or testo.strip() == "":
-        return RedirectResponse(url="/", status_code=303)
-
-    # Salviamo nel database
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO domande (username, testo) VALUES (%s, %s)", (username, testo))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    
-    # Torniamo subito alla Home come se nulla fosse successo
-    return RedirectResponse(url="/", status_code=303)
-
+ADMIN_PASSWORD = "29102003"
 
 # Sostituisci "TuaPasswordSegreta" con quella che preferisci
-ADMIN_PASSWORD = "29102003"
+ADMIN_PASSWORD = "TuaPasswordSegreta"
 
 @app.get("/admin")
 async def admin_page():
     return HTMLResponse("""
-        <style>
-            body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-            .card { background: #1e1e1e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0; animation: fadeIn 0.8s forwards; }
-            @keyframes fadeIn { to { opacity: 1; } }
-            input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; }
-            button { width: 100%; padding: 12px; background: #6200ea; color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s; }
-            button:hover { background: #3700b3; transform: scale(1.02); }
-        </style>
-        <div class="card">
-            <h2>🔐 Accesso Admin</h2>
-            <form method="post" action="/admin-login">
-                <input type="password" name="password" placeholder="Password Segreta" required>
-                <button type="submit">Entra nel Sistema</button>
-            </form>
-        </div>
+        <html>
+            <body style="font-family: sans-serif; padding: 50px;">
+                <h2>Area Riservata Admin</h2>
+                <form method="post" action="/admin-login">
+                    <input type="password" name="password" placeholder="Password Admin">
+                    <button type="submit">Entra</button>
+                </form>
+            </body>
+        </html>
     """)
 
 @app.post("/admin-login")
 async def admin_login(password: str = Form(...)):
     if password == ADMIN_PASSWORD:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, username, email, testo, risposta FROM domande")
-        domande = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        html_content = """
-        <style>
-            body { font-family: sans-serif; background: #121212; color: white; padding: 20px; }
-            table { width: 100%; border-collapse: collapse; background: #1e1e1e; color: white; }
-            th, td { padding: 15px; border: 1px solid #333; text-align: left; }
-            .risposta-form { display: flex; gap: 5px; }
-        </style>
-        <h2>Gestione Domande</h2>
-        <table>
-            <tr><th>User</th><th>Email</th><th>Domanda</th><th>Rispondi</th></tr>
-        """
-        for d in domande:
-            # d[0]=id, d[1]=user, d[2]=email, d[3]=testo, d[4]=risposta
-            html_content += f"""
-            <tr>
-                <td>{d[1]}</td><td>{d[2]}</td><td>{d[3]}</td>
-                <td>
-                    <form action='/invia-risposta/{d[0]}' method='post' class='risposta-form'>
-                        <input type='text' name='risposta' placeholder='Rispondi qui...'>
-                        <button type='submit'>Invia</button>
-                    </form>
-                </td>
-            </tr>"""
-        html_content += "</table><br><a href='/admin'>Torna indietro</a>"
-        return HTMLResponse(html_content)
+        # Se la password è giusta, qui visualizzeremo le domande
+        return "Accesso effettuato! (Prossimo step: aggiungere le domande qui)"
     else:
-        return "Password errata!"
-        
-@app.post("/invia-risposta/{domanda_id}")
-async def invia_risposta(domanda_id: int, risposta: str = Form(...)):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # 1. Trova l'utente che ha fatto la domanda
-    cursor.execute("SELECT username FROM domande WHERE id = %s", (domanda_id,))
-    username = cursor.fetchone()[0]
-    
-    # 2. Trova l'email di quell'utente nella tabella 'utenti'
-    cursor.execute("SELECT email FROM utenti WHERE username = %s", (username,))
-    email_destinatario = cursor.fetchone()[0]
-    
-    # 3. Salva la risposta nella tabella domande
-    cursor.execute("UPDATE domande SET risposta = %s WHERE id = %s", (risposta, domanda_id))
-    conn.commit()
-    
-    # Ora 'email_destinatario' contiene l'email corretta!
-    # invia_email_brevo(email_destinatario, risposta) 
-    
-    cursor.close()
-    conn.close()
-    return RedirectResponse(url="/admin", status_code=303)
-    
-@app.get("/delete/{domanda_id}")
-async def delete_domanda(domanda_id: int):
-    # Eseguiamo la cancellazione
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM domande WHERE id = %s", (domanda_id,))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    
-    # Invece di ritornare HTML, facciamo un REDIRECT immediato
-    return RedirectResponse(url="/admin")
+        return "Password errata! <a href='/admin'>Riprova</a>"
 
 # --- PAGINA 1: HOME PAGE (Hub Principale) ---
 @app.get("/", response_class=HTMLResponse)
