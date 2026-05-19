@@ -8,12 +8,21 @@ app = FastAPI()
 def init_db():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
+    # Tabella utenti
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS utenti (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             email TEXT NOT NULL,
             password TEXT NOT NULL
+        )
+    """)
+    # AGGIUNTA: Tabella per salvare le domande
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS domande (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            testo TEXT NOT NULL
         )
     """)
     conn.commit()
@@ -29,19 +38,39 @@ async def root(request: Request, msg: str = None):
     
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
+    
+    # 1. Recupera gli ultimi 5 utenti
     cursor.execute("SELECT username FROM utenti ORDER BY id DESC LIMIT 5")
     utenti_html = "".join([f"<li>{row[0]}</li>" for row in cursor.fetchall()]) or "<li>Nessun player registrato</li>"
+    
+    # 2. AGGIUNTA: Recupera tutte le domande salvate
+    cursor.execute("SELECT username, testo FROM domande ORDER BY id DESC")
+    domande_salvate = cursor.fetchall()
     conn.close()
+    
+    # Genera l'HTML per l'elenco delle domande
+    domande_html = "".join([f"<div style='background: #11141a; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #81c784; text-align: left;'><b>{d[0]}:</b> {d[1]}</div>" for d in domande_salvate]) or "<p style='color: #b0bec5;'>Nessuna domanda presente. Fai la prima!</p>"
     
     alert_box = f'<div style="background:#238636; padding:10px; border-radius:6px; margin-bottom:20px; text-align:center; font-weight:bold;">{msg}</div>' if msg else ""
 
     # Logica dinamica per il Banner Q&A ed i Moduli di Autenticazione
     if session_user:
+        # MODIFICATO: Ora contiene il form di invio e lo storico delle domande
         qa_banner = f"""
         <div class="card" style="background: linear-gradient(135deg, #1b5e20, #004d40); border: 2px solid #81c784; text-align: center;">
             <h2 style="color: #a5d6a7; margin-bottom: 10px;">🔓 TAVERNA DEI VETERANI (Q&A ATTIVO)</h2>
-            <p>Salute a te, <b>{session_user}</b>! Sei loggato nel terminale di rete. Puoi accedere liberamente alle domande della community.</p>
-            <a href="#" class="btn btn-green" style="max-width: 300px; margin: 10px auto 0 auto;">Entra nel Forum Q&A (WIP)</a>
+            <p>Salute a te, <b>{session_user}</b>! Puoi inviare una domanda o lasciare un consiglio per la community:</p>
+            
+            <form action="/invia-domanda" method="post" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px; margin-bottom: 20px;">
+                <textarea name="testo_domanda" rows="3" placeholder="Scrivi qui la tua domanda o trucco di sopravvivenza..." style="width: 100%; padding: 10px; background: #11141a; border: 1px solid #2d3545; color: white; border-radius: 6px; resize: none; font-family: sans-serif;" required></textarea>
+                <button type="submit" class="btn btn-green" style="font-size: 15px; padding: 10px; width: auto; align-self: center; min-width: 150px;">Invia Domanda</button>
+            </form>
+            
+            <h3 style="border-bottom: 1px solid #2d3545; padding-bottom: 5px; color: #a5d6a7; font-size: 16px; text-align: left; margin-top: 20px;">Domande Recenti:</h3>
+            <div style="max-height: 250px; overflow-y: auto; margin-top: 10px;">
+                {domande_html}
+            </div>
+            
             <a href="/logout" style="display: block; margin-top: 15px; color: #ff5252; text-decoration: underline; font-size: 14px;">Scollega Account / Logout</a>
         </div>
         """
@@ -170,7 +199,6 @@ async def register_user(
         conn.commit()
         msg = f"Grande {username}, registrato con successo!"
         redirect = RedirectResponse(url=f"/?msg={msg}", status_code=303)
-        # Effettua il login automatico impostando il cookie
         redirect.set_cookie(key="session_user", value=username, max_age=3600)
         return redirect
     except sqlite3.IntegrityError:
@@ -205,6 +233,32 @@ async def logout_user():
     redirect = RedirectResponse(url="/?msg=Sessione+chiusa+correttamente.", status_code=303)
     redirect.delete_cookie("session_user")
     return redirect
+
+# --- AGGIUNTA: ENDPOINT PER SALVARE LA DOMANDA ---
+@app.post("/invia-domanda")
+async def invia_domanda(request: Request, testo_domanda: str = Form(...)):
+    session_user = request.cookies.get("session_user")
+    
+    if not session_user:
+        return RedirectResponse(url="/?msg=Errore:+Devi+effettuare+il+login!", status_code=303)
+        
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO domande (username, testo) VALUES (?, ?)", (session_user, testo_domanda))
+    conn.commit()
+    conn.close()
+    
+    return RedirectResponse(url="/?msg=Domanda+pubblicata+nella+Taverna!", status_code=303)
+
+# --- PAGINA 2: GUIDA AVANZATA MINUTO PER MINUTO ---
+@app.get("/guida-avanzata", response_class=HTMLResponse)
+async def guida_avanzata():
+    # Rimane identico alla tua versione attuale...
+    html_content = """...""" # (Il resto del tuo codice originale per le pagine rimane immutato)
+    return HTMLResponse(content=html_content, status_code=200)
+
+# (Nota: Nel file che caricherai mantieni pure il testo completo delle guide sotto a questa riga, l'ho tagliato qui solo per brevità!)
+
 
 # --- PAGINA 2: GUIDA AVANZATA MINUTO PER MINUTO ---
 @app.get("/guida-avanzata", response_class=HTMLResponse)
