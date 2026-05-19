@@ -47,24 +47,48 @@ def init_db():
 # Eseguiamo l'inizializzazione all'avvio
 init_db()
 # --- ROTTE PER LE DOMANDE ---
+@app.get("/scrivi-domanda", response_class=HTMLResponse)
+async def pagina_scrivi_domanda(request: Request):
+    # Controlliamo se l'utente è loggato
+    username = request.cookies.get("session_user")
+    if not username:
+        return RedirectResponse(url="/login")
+
+    # Questo è il form HTML che l'utente vedrà
+    return """
+    <html>
+        <body>
+            <h2>Scrivi la tua domanda alla Taverna</h2>
+            <form action="/invia-domanda" method="post">
+                <textarea name="testo" rows="5" cols="40" placeholder="Scrivi qui..." required></textarea><br>
+                <button type="submit">Invia Domanda</button>
+            </form>
+            <br><a href="/">Torna indietro</a>
+        </body>
+    </html>
+    """
 
 @app.post("/invia-domanda")
 async def invia_domanda(request: Request, testo: str = Form(None)):
-    # Recuperiamo l'utente loggato (se presente)
     username = request.cookies.get("session_user") or "Anonimo"
     
-    # Se il testo è vuoto, avvisiamo l'utente invece di crashare
-    if not testo:
-        return HTMLResponse("Non hai scritto nulla! <a href='/'>Torna indietro</a>")
+    # Se il testo è vuoto, avvisiamo l'utente
+    if not testo or testo.strip() == "":
+        return HTMLResponse("Non hai scritto nulla! <a href='/scrivi-domanda'>Torna indietro</a>")
 
+    # Salvataggio nel database
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO domande (username, testo) VALUES (%s, %s)", (username, testo))
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        cursor.execute("INSERT INTO domande (username, testo) VALUES (%s, %s)", (username, testo))
+        conn.commit()
+    except Exception as e:
+        return HTMLResponse(f"Errore nel salvataggio: {e}")
+    finally:
+        cursor.close()
+        conn.close()
     
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/?msg=Domanda+inviata+con+successo", status_code=303)
 
 
 # Sostituisci "TuaPasswordSegreta" con quella che preferisci
