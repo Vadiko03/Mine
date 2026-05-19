@@ -33,6 +33,7 @@ init_db()
 # --- PAGINA 1: HOME PAGE (Hub Principale) ---
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request, msg: str = None):
+    session_user = request.cookies.get("session_user")
     # Controllo dello stato di login tramite i cookie di sessione
     session_user = request.cookies.get("session_user")
     
