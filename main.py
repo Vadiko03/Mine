@@ -70,25 +70,23 @@ async def pagina_scrivi_domanda(request: Request):
 
 @app.post("/invia-domanda")
 async def invia_domanda(request: Request, testo: str = Form(None)):
-    username = request.cookies.get("session_user") or "Anonimo"
+    # Recuperiamo l'utente
+    username = request.cookies.get("session_user")
     
-    # Se il testo è vuoto, avvisiamo l'utente
+    # Se il testo è vuoto, ignoriamo e torniamo indietro senza errori
     if not testo or testo.strip() == "":
-        return HTMLResponse("Non hai scritto nulla! <a href='/scrivi-domanda'>Torna indietro</a>")
+        return RedirectResponse(url="/", status_code=303)
 
-    # Salvataggio nel database
+    # Salviamo nel database
     conn = get_db_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute("INSERT INTO domande (username, testo) VALUES (%s, %s)", (username, testo))
-        conn.commit()
-    except Exception as e:
-        return HTMLResponse(f"Errore nel salvataggio: {e}")
-    finally:
-        cursor.close()
-        conn.close()
+    cursor.execute("INSERT INTO domande (username, testo) VALUES (%s, %s)", (username, testo))
+    conn.commit()
+    cursor.close()
+    conn.close()
     
-    return RedirectResponse(url="/?msg=Domanda+inviata+con+successo", status_code=303)
+    # Torniamo subito alla Home come se nulla fosse successo
+    return RedirectResponse(url="/", status_code=303)
 
 
 # Sostituisci "TuaPasswordSegreta" con quella che preferisci
