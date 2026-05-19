@@ -486,6 +486,8 @@ async def mob_guide():
                     <span class="mob-name">🟢 Creeper</span>
                     <div class="field-row"><span class="field-label">Minaccia:</span><span class="field-val highlight-red">Esplosione ravvicinata fatale al 100% senza scudo (64 punti danno).</span></div>
                     <div class="field-row"><span class="field-label">Strategia:</span><span class="field-val">Se senti "ssss", scudo alzato istantaneamente (azzera il danno) o colpiscilo correndo all'indietro pe' resettare il timer.</span></div>
+                    
+                    <img src="/static/creeper.png" alt="Creeper" style="width: 150px; margin-top: 10px; display: block;">
                 </div>
                 <div class="mob-entry danger-high">
                     <span class="mob-name">🔮 Enderman</span>
