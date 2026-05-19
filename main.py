@@ -120,6 +120,25 @@ async def admin_login(password: str = Form(...)):
         return HTMLResponse(html_content)
     else:
         return "Password errata!"
+        
+@app.post("/invia-risposta/{domanda_id}")
+async def invia_risposta(domanda_id: int, risposta: str = Form(...)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 1. Recuperiamo l'email
+    cursor.execute("SELECT email FROM domande WHERE id = %s", (domanda_id,))
+    result = cursor.fetchone()
+    email_destinatario = result[0] if result else "nessuna@email.com"
+    
+    # 2. Aggiorniamo il database
+    cursor.execute("UPDATE domande SET risposta = %s WHERE id = %s", (risposta, domanda_id))
+    conn.commit()
+    
+    cursor.close()
+    conn.close()
+    
+    return RedirectResponse(url="/admin", status_code=303)
 @app.get("/delete/{domanda_id}")
 async def delete_domanda(domanda_id: int):
     # Eseguiamo la cancellazione
