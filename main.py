@@ -104,13 +104,16 @@ async def admin_login(password: str = Form(...)):
 
 @app.get("/delete/{domanda_id}")
 async def delete_domanda(domanda_id: int):
+    # Eseguiamo la cancellazione
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM domande WHERE id = %s", (domanda_id,))
     conn.commit()
     cursor.close()
     conn.close()
-    return HTMLResponse("Domanda eliminata! <br> <a href='/admin'>Torna al pannello</a>")
+    
+    # Invece di ritornare HTML, facciamo un REDIRECT immediato
+    return RedirectResponse(url="/admin")
 
 # --- PAGINA 1: HOME PAGE (Hub Principale) ---
 @app.get("/", response_class=HTMLResponse)
