@@ -122,20 +122,126 @@ async def root(request: Request, msg: str = None):
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Minecraft Hardcore Survival Hub</title>
         <style>
-            body {{ font-family: 'Segoe UI', sans-serif; background-color: #11141a; color: #e3e6eb; padding: 15px; display: flex; flex-direction: column; align-items: center; margin: 0; box-sizing: border-box; }}
-            .container {{ max-width: 650px; width: 100%; box-sizing: border-box; }}
-            .header {{ text-align: center; padding: 20px; background: linear-gradient(135deg, #b71c1c, #7f0000); border-radius: 12px; margin-bottom: 20px; }}
-            .card {{ background-color: #1c212b; border: 1px solid #2d3545; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-sizing: border-box; }}
-            h2 {{ color: #e53935; margin-top: 0; font-size: 20px; }}
+            /* Reset generale e centramento forzato del body */
+            body {{ 
+                font-family: 'Segoe UI', sans-serif; 
+                background-color: #11141a; 
+                color: #e3e6eb; 
+                padding: 10px; /* Ridotto per mobile */
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                margin: 0; 
+                min-height: 100vh;
+                box-sizing: border-box;
+            }}
+
+            /* Contenitore principale: non deve mai superare il 100% della larghezza */
+            .container {{ 
+                width: 100%; 
+                max-width: 650px; 
+                display: flex;
+                flex-direction: column;
+                box-sizing: border-box;
+            }}
+
+            /* Header centrato */
+            .header {{ 
+                text-align: center; 
+                padding: 20px; 
+                background: linear-gradient(135deg, #b71c1c, #7f0000); 
+                border-radius: 12px; 
+                margin-bottom: 20px; 
+                box-sizing: border-box;
+            }}
+            .header h1 {{ margin-top: 0; font-size: 24px; }}
+            .header p {{ margin-bottom: 0; font-size: 14px; }}
+
+            /* Le Card: box-sizing e margini automatici per il centramento */
+            .card {{ 
+                background-color: #1c212b; 
+                border: 1px solid #2d3545; 
+                border-radius: 12px; 
+                padding: 20px; /* Ridotto per mobile */
+                margin: 0 auto 20px auto; /* Centramento orizzontale forzato */
+                width: 100%; /* Occupa tutto lo spazio disponibile nel container */
+                box-sizing: border-box; /* Cruciale per non far uscire padding/border */
+            }}
+            h2 {{ color: #e53935; margin-top: 0; font-size: 20px; text-align: center; }}
             
-            .auth-container {{ display: flex; gap: 15px; flex-wrap: wrap; width: 100%; margin-bottom: 20px; }}
-            .auth-card {{ flex: 1; min-width: 280px; margin-bottom: 0; }}
+            /* Box per l'alert verde (messaggi di successo) */
+            .alert {{
+                background-color: #238636; 
+                padding: 10px; 
+                border-radius: 6px; 
+                margin: 0 auto 20px auto;
+                width: 100%;
+                text-align: center;
+                box-sizing: border-box;
+                font-weight: bold;
+            }}
+
+            /* Correzione specifica per il Banner Q&A (verde/rosso) per centrarlo */
+            .card-qa {{
+                max-width: 600px; /* Manteniamo il limite visivo */
+                width: 100%; /* Ma deve poter rimpicciolire */
+                margin-left: auto; /* Forziamo il centramento */
+                margin-right: auto;
+                box-sizing: border-box;
+            }}
+
+            /* Form, input e textarea: non devono mai uscire dai bordi */
+            .auth-container {{ 
+                display: flex; 
+                gap: 15px; 
+                flex-wrap: wrap; /* Fa andare a capo su mobile */
+                width: 100%; 
+                margin-bottom: 20px; 
+                justify-content: center;
+                box-sizing: border-box;
+            }}
+            .auth-card {{ flex: 1; min-width: 280px; margin: 0; }} /* Centrate dal flex-wrap */
             
-            .form-group {{ margin-bottom: 15px; }}
-            input {{ width: 100%; padding: 12px; background: #11141a; border: 1px solid #2d3545; border-radius: 6px; color: #fff; box-sizing: border-box; font-size: 16px; }}
+            .form-group {{ margin-bottom: 15px; width: 100%; box-sizing: border-box; }}
             
-            .btn {{ background-color: #e53935; color: white; border: none; padding: 12px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; text-decoration: none; display: block; text-align: center; box-sizing: border-box; font-size: 15px; }}
-            .btn-nav {{ margin-top: 12px; font-size: 14px; padding: 14px 10px; }}
+            /* Input e Textarea forzati a stare dentro con box-sizing */
+            input, textarea {{ 
+                width: 100%; 
+                padding: 12px; 
+                background: #11141a; 
+                border: 1px solid #2d3545; 
+                border-radius: 6px; 
+                color: #fff; 
+                box-sizing: border-box; /* Impedisce che il padding le faccia uscire */
+                font-size: 16px; /* Evita zoom automatico su iOS */
+            }}
+            
+            /* Pulsanti centrati e reattivi */
+            .btn {{ 
+                background-color: #e53935; 
+                color: white; 
+                border: none; 
+                padding: 12px 20px; 
+                font-weight: bold; 
+                border-radius: 6px; 
+                cursor: pointer; 
+                width: 100%; 
+                max-width: 300px; /* Per non farli giganti su PC */
+                text-decoration: none; 
+                display: block; 
+                text-align: center; 
+                box-sizing: border-box; 
+                font-size: 15px; 
+                margin: 0 auto; /* Centramento automatico del pulsante stesso */
+            }}
+            .btn-nav {{ 
+                margin-top: 12px; 
+                font-size: 14px; 
+                padding: 14px 10px; 
+                max-width: 100%; /* Sulle nav rioccupano tutto */
+            }}
+            
+            /* Varianti colore pulsanti (già presenti) */
             .btn-purple {{ background-color: #4a148c; }}
             .btn-orange {{ background-color: #e65100; }}
             .btn-green {{ background-color: #1b5e20; }}
@@ -143,10 +249,32 @@ async def root(request: Request, msg: str = None):
             .btn-dark {{ background-color: #37474f; }}
             .btn-magenta {{ background-color: #880e4f; }}
             
+            /* Storico domande: formattazione pulita */
+            .domanda-box {{
+                background: #11141a; 
+                padding: 10px; 
+                border-radius: 6px; 
+                margin-bottom: 8px; 
+                border-left: 4px solid #81c784; 
+                text-align: left;
+                width: 100%;
+                box-sizing: border-box;
+            }}
+
+            /* --- REGOLE SPECIFICHE PER MOBILE --- */
             @media (max-width: 600px) {{
-                body {{ padding: 10px; }}
-                .header h1 {{ font-size: 20px; }}
-                .card {{ padding: 15px; }}
+                body {{ padding: 5px; }} /* Margine ancora più ridotto */
+                .container {{ padding: 0 5px; }}
+                .header {{ padding: 15px; border-radius: 8px; }}
+                .header h1 {{ font-size: 19px; }}
+                .card {{ padding: 15px; border-radius: 8px; }}
+                h2 {{ font-size: 17px; }}
+                
+                /* I pulsanti di navigazione occupano tutta la larghezza per facilità di tocco */
+                .btn-nav {{ font-size: 13px; padding: 12px 5px; max-width: 100%; }}
+                
+                /* La textarea Q&A deve stare dentro */
+                textarea {{ font-size: 14px; padding: 8px; }}
             }}
         </style>
     </head>
