@@ -1,6 +1,8 @@
 import os
 import psycopg2
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Form, Response
+# Questa è la riga che manca o che è stata cancellata:
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 app = FastAPI()
 
