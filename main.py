@@ -1,13 +1,14 @@
 import os
 import psycopg2
+from psycopg2 import errors # Serve per gestire gli errori
 from fastapi import FastAPI, Request, Form, Response
-# Questa è la riga che manca o che è stata cancellata:
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 app = FastAPI()
 
-# Leggiamo l'indirizzo del database dalle variabili d'ambiente di Render
-DATABASE_URL = os.environ.get("DATABASE_URL")
+# La tua funzione di connessione
+def get_db_connection():
+    return psycopg2.connect(os.environ.get("DATABASE_URL"))
 
 # Funzione per connettersi al database esterno
 def get_db_connection():
@@ -336,16 +337,19 @@ async def root(request: Request, msg: str = None):
 # --- ENDPOINT REGISTRAZIONE ---
 @app.post("/register")
 async def register_user(response: Response, username: str = Form(...), email: str = Form(...), password: str = Form(...)):
-    conn = sqlite3.connect("database.db")
+    # Usa la funzione che abbiamo creato per Neon
+conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO utenti (username, email, password) VALUES (?, ?, ?)", (username, email, password))
+        # Sostituisci i punti interrogativi (?) con %s
+        cursor.execute("INSERT INTO utenti (username, email, password) VALUES (%s, %s, %s)", (username, email, password))
         conn.commit()
         msg = f"Grande {username}, registrato con successo!"
         redirect = RedirectResponse(url=f"/?msg={msg}", status_code=303)
         redirect.set_cookie(key="session_user", value=username, max_age=3600)
         return redirect
-    except sqlite3.IntegrityError:
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
         return RedirectResponse(url="/?msg=Errore:+Username+gia+esistente!", status_code=303)
     finally:
         conn.close()
@@ -353,7 +357,8 @@ async def register_user(response: Response, username: str = Form(...), email: st
 # --- ENDPOINT LOGIN ---
 @app.post("/login")
 async def login_user(response: Response, username: str = Form(...), password: str = Form(...)):
-    conn = sqlite3.connect("database.db")
+    # Usa la funzione che abbiamo creato per Neon
+conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT username FROM utenti WHERE username = ? AND password = ?", (username, password))
     user = cursor.fetchone()
@@ -381,7 +386,8 @@ async def invia_domanda(request: Request, testo_domanda: str = Form(...)):
     if not session_user:
         return RedirectResponse(url="/?msg=Errore:+Devi+effettuare+il+login!", status_code=303)
         
-    conn = sqlite3.connect("database.db")
+    # Usa la funzione che abbiamo creato per Neon
+conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO domande (username, testo) VALUES (?, ?)", (session_user, testo_domanda))
     conn.commit()
