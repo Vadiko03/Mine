@@ -45,16 +45,30 @@ def init_db():
 init_db()
 ADMIN_PASSWORD = "29102003"
 
+# Sostituisci "TuaPasswordSegreta" con quella che preferisci
+ADMIN_PASSWORD = "TuaPasswordSegreta"
+
 @app.get("/admin")
 async def admin_page():
-    return HTMLResponse("<html><body><form method='post' action='/admin-login'><input type='password' name='password'><button type='submit'>Entra</button></form></body></html>")
+    return HTMLResponse("""
+        <html>
+            <body style="font-family: sans-serif; padding: 50px;">
+                <h2>Area Riservata Admin</h2>
+                <form method="post" action="/admin-login">
+                    <input type="password" name="password" placeholder="Password Admin">
+                    <button type="submit">Entra</button>
+                </form>
+            </body>
+        </html>
+    """)
 
 @app.post("/admin-login")
 async def admin_login(password: str = Form(...)):
     if password == ADMIN_PASSWORD:
-        return "Accesso effettuato!"
+        # Se la password è giusta, qui visualizzeremo le domande
+        return "Accesso effettuato! (Prossimo step: aggiungere le domande qui)"
     else:
-        return "Password errata!"
+        return "Password errata! <a href='/admin'>Riprova</a>"
 
 # --- PAGINA 1: HOME PAGE (Hub Principale) ---
 @app.get("/", response_class=HTMLResponse)
