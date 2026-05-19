@@ -1,19 +1,13 @@
 import os
 import psycopg2
-from psycopg2 import errors # Serve per gestire gli errori
+from psycopg2 import errors
 from fastapi import FastAPI, Request, Form, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 app = FastAPI()
 
-# La tua funzione di connessione
+# Definiamo la connessione una sola volta, in modo pulito
 def get_db_connection():
-    return psycopg2.connect(os.environ.get("DATABASE_URL"))
-
-# Funzione per connettersi al database esterno
-# Funzione per connettersi al database esterno
-def get_db_connection():
-    # sslmode=require è necessario per la connessione sicura con Neon
     return psycopg2.connect(os.environ.get("DATABASE_URL"))
 
 # --- INIZIALIZZAZIONE ---
@@ -21,7 +15,7 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # In PostgreSQL si usa SERIAL per l'auto-incremento
+    # Creazione tabelle con PostgreSQL
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS utenti (
             id SERIAL PRIMARY KEY,
