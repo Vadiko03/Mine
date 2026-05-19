@@ -49,11 +49,11 @@ init_db()
 # --- ROTTE PER LE DOMANDE ---
 
 @app.post("/invia-domanda")
-async def invia_domanda(username: str = Form(...), email: str = Form(...), testo: str = Form(...)):
+async def invia_domanda(username: str = Form(...), testo: str = Form(...)):
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Inseriamo i 3 dati nella tabella 'domande'
-    cursor.execute("INSERT INTO domande (username, email, testo) VALUES (%s, %s, %s)", (username, email, testo))
+    # Salviamo solo username e testo. L'email la recupereremo dopo quando serve!
+    cursor.execute("INSERT INTO domande (username, testo) VALUES (%s, %s)", (username, testo))
     conn.commit()
     cursor.close()
     conn.close()
