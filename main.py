@@ -43,6 +43,18 @@ def init_db():
 
 # Eseguiamo l'inizializzazione all'avvio
 init_db()
+ADMIN_PASSWORD = "29102003"
+
+@app.get("/admin")
+async def admin_page():
+    return HTMLResponse("<html><body><form method='post' action='/admin-login'><input type='password' name='password'><button type='submit'>Entra</button></form></body></html>")
+
+@app.post("/admin-login")
+async def admin_login(password: str = Form(...)):
+    if password == ADMIN_PASSWORD:
+        return "Accesso effettuato!"
+    else:
+        return "Password errata!"
 
 # --- PAGINA 1: HOME PAGE (Hub Principale) ---
 @app.get("/", response_class=HTMLResponse)
