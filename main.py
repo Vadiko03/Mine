@@ -192,6 +192,7 @@ async def invia_risposta(domanda_id: int, risposta: str = Form(...)):
     cursor.close()
     conn.close()
     return RedirectResponse(url="/admin", status_code=303)
+    
 @app.get("/delete/{domanda_id}")
 async def delete_domanda(domanda_id: int):
     # Eseguiamo la cancellazione
