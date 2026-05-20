@@ -161,7 +161,11 @@ async def process_forgot_password(email: str = Form(...)):
         link = f"https://mine-mpcm.onrender.com/reset-password/{token}" 
 
         # --- INVIO MAIL CON SENDGRID API ---
-        api_key = "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" # <--- INCOLLA QUI LA TUA CHIAVE
+        # --- INVIO MAIL CON SENDGRID API ---
+        # --- INVIO MAIL CON SENDGRID API ---
+        # Questa riga pesca la chiave che hai appena messo su Render
+        api_key = os.environ.get("SENDGRID_API_KEY") 
+        
         url = "https://api.sendgrid.com/v3/mail/send"
         
         headers = {
@@ -171,9 +175,9 @@ async def process_forgot_password(email: str = Form(...)):
         
         data = {
             "personalizations": [{"to": [{"email": email}]}],
-            "from": {"email": "sandruvadiko@gmail.com"}, # <--- LA MAIL CHE HAI VERIFICATO
+            "from": {"email": "latuamail@gmail.com"}, # <--- QUELLA VERIFICATA SU SENDGRID!
             "subject": "Reset Password - Minecraft Hub",
-            "content": [{"type": "text/plain", "value": f"Ciao! Clicca qui per cambiare la password: {link}"}]
+            "content": [{"type": "text/plain", "value": f"Ciao! Clicca qui: {link}"}]
         }
 
         async with httpx.AsyncClient() as client:
