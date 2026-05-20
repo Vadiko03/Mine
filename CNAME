@@ -1,1 +1,9 @@
 vadiko03.mine.com
+em1001.https://mine-mpcm.onrender.com
+u107801188.wl189.sendgrid.net
+s1._domainkey.https://mine-mpcm.onrender.com
+s1.domainkey.u107801188.wl189.sendgrid.net
+s2._domainkey.https://mine-mpcm.onrender.com
+s2.domainkey.u107801188.wl189.sendgrid.net
+_dmarc.https://mine-mpcm.onrender.com
+v=DMARC1; p=none; sp=none; rua=mailto:re+43f616552aef@inbound.dmarcdigests.com; pct=100
