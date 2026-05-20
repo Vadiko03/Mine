@@ -169,16 +169,23 @@ async def process_forgot_password(email: str = Form(...)):
         msg.set_content(f"Ciao! Clicca qui per cambiare la tua password: {link}")
 
         try:
-            # Usamo la porta 587 con un timeout de 10 secondi pe' nun impallà tutto
-            with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as smtp:
-                smtp.starttls()  # Attiva la cifratura
+            # Provamo a usà l'host alternativo di Google che a vorte è più "aperto"
+            with smtplib.SMTP('smtp-relay.gmail.com', 587, timeout=15) as smtp:
+                smtp.starttls()
                 smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
                 smtp.send_message(msg)
             res_msg = "Link inviato! Controlla la posta."
         except Exception as e:
-            # Se c'è un errore, lo scrivemo nei log così capimo che succede
-            print(f"ERRORE CRITICO MAIL: {e}")
-            res_msg = "Errore nell'invio della mail. Riprova più tardi."
+            # Se fallisce pure questo, provamo a forzà smtp.gmail.com ma con più tempo
+            try:
+                with smtplib.SMTP('smtp.gmail.com', 587, timeout=15) as smtp:
+                    smtp.starttls()
+                    smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+                    smtp.send_message(msg)
+                res_msg = "Link inviato! Controlla la posta."
+            except Exception as e2:
+                print(f"ERRORE DEFINITIVO: {e2}")
+                res_msg = "Errore nell'invio della mail. Riprova più tardi."
             
         conn.close()
         return RedirectResponse(url=f"/?msg={res_msg}", status_code=303)
