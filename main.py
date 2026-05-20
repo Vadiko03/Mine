@@ -213,6 +213,7 @@ async def root(request: Request, msg: str = None):
         </a>
     </div>
 </div>
+"""
     html_content = f"""
     <!DOCTYPE html>
     <html lang="it">
