@@ -1,5 +1,8 @@
 import os
 import psycopg2
+import uuid        # <--- AGGIUNGI QUESTO (per generà i token univoci)
+import smtplib     # <--- AGGIUNGI QUESTO (per spedì le mail)
+from email.message import EmailMessage # <--- AGGIUNGI QUESTO
 from psycopg2 import errors
 from fastapi import FastAPI, Request, Form, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -53,7 +56,10 @@ def init_db():
 
 # Eseguiamo l'inizializzazione all'avvio
 init_db()
+# Sotto init_db()
 ADMIN_PASSWORD = "29102003"
+EMAIL_ADDRESS = "sandruvadiko@gmail.com"  # <--- Metti la tua mail
+EMAIL_PASSWORD = "VadimS2003!" # <--- Metti la password per le app di Google
 
 # Sostituisci "TuaPasswordSegreta" con quella che preferisci
 ADMIN_PASSWORD = "29102003"
