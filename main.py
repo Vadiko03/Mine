@@ -36,6 +36,16 @@ def init_db():
             testo TEXT NOT NULL
         )
     """)
+
+    # AGGIUNGI QUESTO PEZZO QUI SOTTO:
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS reset_tokens (
+            id SERIAL PRIMARY KEY,
+            email TEXT NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            scadenza TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 hour')
+        )
+    """)
     
     conn.commit()
     cursor.close()
