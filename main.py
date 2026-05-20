@@ -171,7 +171,7 @@ async def process_forgot_password(email: str = Form(...)):
         
         data = {
             "personalizations": [{"to": [{"email": email}]}],
-            "from": {"email": "tua_mail_verificata@gmail.com"}, # <--- LA MAIL CHE HAI VERIFICATO
+            "from": {"email": "sandruvadiko@gmail.com"}, # <--- LA MAIL CHE HAI VERIFICATO
             "subject": "Reset Password - Minecraft Hub",
             "content": [{"type": "text/plain", "value": f"Ciao! Clicca qui per cambiare la password: {link}"}]
         }
