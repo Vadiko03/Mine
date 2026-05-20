@@ -165,21 +165,23 @@ async def process_forgot_password(email: str = Form(...)):
         msg['Subject'] = 'Reset Password - Minecraft Hub'
         msg['From'] = EMAIL_ADDRESS
         msg['To'] = email
-        msg.set_content(f"Ciao! Usa questo link per cambiare la tua password: {link}\nIl link scadrà tra un'ora.")
+        # ... (sopra rimane uguale)
+        msg.set_content(f"Ciao! Clicca qui per cambiare la tua password: {link}")
 
         try:
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            # Usamo la porta 587 con un timeout de 10 secondi pe' nun impallà tutto
+            with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as smtp:
+                smtp.starttls()  # Attiva la cifratura
                 smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
                 smtp.send_message(msg)
             res_msg = "Link inviato! Controlla la posta."
         except Exception as e:
-            print(f"Errore mail: {e}")
-            res_msg = "Errore invio mail. Riprova più tardi."
-    else:
-        res_msg = "Email non trovata nel sistema."
-
-    conn.close()
-    return RedirectResponse(url=f"/?msg={res_msg}", status_code=303)
+            # Se c'è un errore, lo scrivemo nei log così capimo che succede
+            print(f"ERRORE CRITICO MAIL: {e}")
+            res_msg = "Errore nell'invio della mail. Riprova più tardi."
+            
+        conn.close()
+        return RedirectResponse(url=f"/?msg={res_msg}", status_code=303)
 
 @app.get("/reset-password/{token}", response_class=HTMLResponse)
 async def reset_password_page(token: str):
