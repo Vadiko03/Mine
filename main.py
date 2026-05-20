@@ -196,20 +196,23 @@ async def root(request: Request, msg: str = None):
             </div>
 
             <div class="card auth-card" style="background: #141820;">
-                <h2>🔑 Accedi all'Hub</h2>
-                <form action="/login" method="post">
-                    <div class="form-group">
-                        <input type="text" name="username" required placeholder="Username In-Game">
-                    </div>
-                    <div class="form-group">
-                        <input type="password" name="password" required placeholder="La tua Password">
-                    </div>
-                    <button type="submit" class="btn btn-blue">Effettua il Login</button>
-                </form>
-            </div>
+    <h2>🔑 Accedi all'Hub</h2>
+    <form action="/login" method="post">
+        <div class="form-group">
+            <input type="text" name="username" required placeholder="Username In-Game">
         </div>
-        """
-
+        <div class="form-group">
+            <input type="password" name="password" required placeholder="La tua Password">
+        </div>
+        <button type="submit" class="btn btn-blue">Effettua il Login</button>
+    </form>
+    
+    <div style="text-align: center; margin-top: 15px;">
+        <a href="/forgot-password" style="color: #b0bec5; font-size: 0.85em; text-decoration: none; transition: 0.3s;" onmouseover="this.style.color='#6200ea'" onmouseout="this.style.color='#b0bec5'">
+            Password dimenticata? Clicca qui
+        </a>
+    </div>
+</div>
     html_content = f"""
     <!DOCTYPE html>
     <html lang="it">
