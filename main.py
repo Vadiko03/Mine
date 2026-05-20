@@ -159,7 +159,7 @@ async def process_forgot_password(email: str = Form(...)):
         conn.commit()
         
         # Link per il reset (cambia l'URL se sei su Render)
-        link = f"https://tuo-sito.onrender.com/reset-password/{token}" 
+        link = f"https://mine-mpcm.onrender.com/reset-password/{token}" 
         
         msg = EmailMessage()
         msg['Subject'] = 'Reset Password - Minecraft Hub'
