@@ -46,29 +46,74 @@ init_db()
 ADMIN_PASSWORD = "29102003"
 
 # Sostituisci "TuaPasswordSegreta" con quella che preferisci
-ADMIN_PASSWORD = "TuaPasswordSegreta"
+ADMIN_PASSWORD = "29102003"
 
 @app.get("/admin")
 async def admin_page():
     return HTMLResponse("""
-        <html>
-            <body style="font-family: sans-serif; padding: 50px;">
-                <h2>Area Riservata Admin</h2>
-                <form method="post" action="/admin-login">
-                    <input type="password" name="password" placeholder="Password Admin">
-                    <button type="submit">Entra</button>
-                </form>
-            </body>
-        </html>
+        <style>
+            body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+            .card { background: #1e1e1e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0; animation: fadeIn 0.8s forwards; }
+            @keyframes fadeIn { to { opacity: 1; } }
+            input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; }
+            button { width: 100%; padding: 12px; background: #6200ea; color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+            button:hover { background: #3700b3; transform: scale(1.02); }
+        </style>
+        <div class="card">
+            <h2>🔐 Accesso Admin</h2>
+            <form method="post" action="/admin-login">
+                <input type="password" name="password" placeholder="Password Segreta" required>
+                <button type="submit">Entra nel Sistema</button>
+            </form>
+        </div>
     """)
 
 @app.post("/admin-login")
 async def admin_login(password: str = Form(...)):
     if password == ADMIN_PASSWORD:
-        # Se la password è giusta, qui visualizzeremo le domande
-        return "Accesso effettuato! (Prossimo step: aggiungere le domande qui)"
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, testo FROM domande")
+        domande = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        # Iniziamo la costruzione dell'HTML con lo stile CSS incluso
+        html_content = """
+        <style>
+            body { font-family: sans-serif; background: #121212; color: #fff; padding: 40px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1e1e1e; border-radius: 10px; overflow: hidden; }
+            th { background: #6200ea; padding: 15px; text-align: left; }
+            td { padding: 15px; border-bottom: 1px solid #333; }
+            tr:hover { background: #2a2a2a; }
+            .btn-del { color: #ff5252; text-decoration: none; font-weight: bold; }
+            .btn-del:hover { text-decoration: underline; }
+            .back-link { display: inline-block; margin-top: 20px; color: #6200ea; text-decoration: none; }
+        </style>
+        <h2>Controllo Operativo</h2>
+        <table>
+            <tr><th>ID</th><th>Utente</th><th>Domanda</th><th>Azione</th></tr>
+        """
+        for d in domande:
+            html_content += f"<tr><td>{d[0]}</td><td>{d[1]}</td><td>{d[2]}</td><td><a href='/delete/{d[0]}' class='btn-del'>Elimina</a></td></tr>"
+        html_content += "</table><a href='/admin' class='back-link'>← Logout / Torna al login</a>"
+        
+        return HTMLResponse(html_content)
     else:
-        return "Password errata! <a href='/admin'>Riprova</a>"
+        return HTMLResponse("<body style='background:#121212; color:white; text-align:center; padding:50px;'>Password errata! <br><a href='/admin'>Riprova</a></body>")
+
+@app.get("/delete/{domanda_id}")
+async def delete_domanda(domanda_id: int):
+    # Eseguiamo la cancellazione
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM domande WHERE id = %s", (domanda_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    # Invece di ritornare HTML, facciamo un REDIRECT immediato
+    return RedirectResponse(url="/admin")
 
 # --- PAGINA 1: HOME PAGE (Hub Principale) ---
 @app.get("/", response_class=HTMLResponse)
