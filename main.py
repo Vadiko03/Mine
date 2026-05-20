@@ -115,9 +115,27 @@ async def admin_login(password: str = Form(...)):
         html_content += "</table><a href='/admin' class='back-link'>← Logout / Torna al login</a>"
         
         return HTMLResponse(html_content)
+    # ... fine della tua funzione admin_login ...
     else:
         return HTMLResponse("<body style='background:#121212; color:white; text-align:center; padding:50px;'>Password errata! <br><a href='/admin'>Riprova</a></body>")
 
+# --- DA QUI INCOLLA LE ROTTE NUOVE ---
+
+@app.get("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_page():
+    # ... (tutto l'HTML della pagina di recupero) ...
+
+@app.post("/forgot-password")
+async def process_forgot_password(email: str = Form(...)):
+    # ... (la logica che genera il token e manda la mail) ...
+
+@app.get("/reset-password/{token}", response_class=HTMLResponse)
+async def reset_password_page(token: str):
+    # ... (l'HTML per inserire la password nuova) ...
+
+@app.post("/reset-password-final")
+async def update_password(token: str = Form(...), new_password: str = Form(...)):
+    # ... (la logica finale che aggiorna il database) ...
 @app.get("/delete/{domanda_id}")
 async def delete_domanda(domanda_id: int):
     # Eseguiamo la cancellazione
