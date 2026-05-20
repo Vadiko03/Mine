@@ -1,5 +1,6 @@
 import os
 import psycopg2
+import httpx
 import uuid        # <--- AGGIUNGI QUESTO (per generà i token univoci)
 import smtplib     # <--- AGGIUNGI QUESTO (per spedì le mail)
 from email.message import EmailMessage # <--- AGGIUNGI QUESTO
@@ -149,46 +150,45 @@ async def process_forgot_password(email: str = Form(...)):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Vediamo se l'email esiste davvero
     cursor.execute("SELECT username FROM utenti WHERE email = %s", (email,))
     user = cursor.fetchone()
     
     if user:
-        # Salviamo il token nel DB
         cursor.execute("INSERT INTO reset_tokens (email, token) VALUES (%s, %s)", (email, token))
         conn.commit()
         
-        # Link per il reset (cambia l'URL se sei su Render)
+        # CAMBIA QUESTO COL TUO LINK VERO DI RENDER
         link = f"https://mine-mpcm.onrender.com/reset-password/{token}" 
-        
-        msg = EmailMessage()
-        msg['Subject'] = 'Reset Password - Minecraft Hub'
-        msg['From'] = EMAIL_ADDRESS
-        msg['To'] = email
-        # ... (sopra rimane uguale)
-        msg.set_content(f"Ciao! Clicca qui per cambiare la tua password: {link}")
 
-        try:
-            # Provamo a usà l'host alternativo di Google che a vorte è più "aperto"
-            with smtplib.SMTP('smtp-relay.gmail.com', 587, timeout=15) as smtp:
-                smtp.starttls()
-                smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-                smtp.send_message(msg)
-            res_msg = "Link inviato! Controlla la posta."
-        except Exception as e:
-            # Se fallisce pure questo, provamo a forzà smtp.gmail.com ma con più tempo
-            try:
-                with smtplib.SMTP('smtp.gmail.com', 587, timeout=15) as smtp:
-                    smtp.starttls()
-                    smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-                    smtp.send_message(msg)
-                res_msg = "Link inviato! Controlla la posta."
-            except Exception as e2:
-                print(f"ERRORE DEFINITIVO: {e2}")
-                res_msg = "Errore nell'invio della mail. Riprova più tardi."
+        # --- INVIO MAIL CON SENDGRID API ---
+        api_key = "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" # <--- INCOLLA QUI LA TUA CHIAVE
+        url = "https://api.sendgrid.com/v3/mail/send"
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "personalizations": [{"to": [{"email": email}]}],
+            "from": {"email": "tua_mail_verificata@gmail.com"}, # <--- LA MAIL CHE HAI VERIFICATO
+            "subject": "Reset Password - Minecraft Hub",
+            "content": [{"type": "text/plain", "value": f"Ciao! Clicca qui per cambiare la password: {link}"}]
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=data, headers=headers)
             
-        conn.close()
-        return RedirectResponse(url=f"/?msg={res_msg}", status_code=303)
+        if response.status_code == 202: # SendGrid risponde 202 se accetta la mail
+            res_msg = "Link inviato! Controlla la posta."
+        else:
+            print(f"Errore SendGrid: {response.text}")
+            res_msg = "Errore nell'invio. Riprova più tardi."
+    else:
+        res_msg = "Email non trovata."
+
+    conn.close()
+    return RedirectResponse(url=f"/?msg={res_msg}", status_code=303)
 
 @app.get("/reset-password/{token}", response_class=HTMLResponse)
 async def reset_password_page(token: str):
