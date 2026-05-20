@@ -121,21 +121,106 @@ async def admin_login(password: str = Form(...)):
 
 # --- DA QUI INCOLLA LE ROTTE NUOVE ---
 
+# --- LOGICA RECUPERO PASSWORD (FINE FILE) ---
+
 @app.get("/forgot-password", response_class=HTMLResponse)
 async def forgot_password_page():
-    # ... (tutto l'HTML della pagina di recupero) ...
+    return """
+    <html>
+    <head><title>Recupero Password</title></head>
+    <body style="background: #0f1218; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+        <div style="background: #141820; padding: 30px; border-radius: 12px; width: 350px; text-align: center; border: 1px solid #1e2530;">
+            <h2 style="color: #bb86fc;">🔑 Recupero</h2>
+            <p style="color: #888; font-size: 14px;">Inserisci la mail per ricevere il link di reset.</p>
+            <form action="/forgot-password" method="post">
+                <input type="email" name="email" placeholder="Tua Email" required 
+                       style="width: 100%; padding: 12px; margin: 15px 0; background: #1e2530; border: 1px solid #333; color: white; border-radius: 6px;">
+                <button type="submit" style="width: 100%; padding: 12px; background: #6200ea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Invia Link</button>
+            </form>
+            <a href="/" style="color: #03dac6; text-decoration: none; font-size: 13px;">⬅️ Torna al Login</a>
+        </div>
+    </body>
+    </html>
+    """
 
 @app.post("/forgot-password")
 async def process_forgot_password(email: str = Form(...)):
-    # ... (la logica che genera il token e manda la mail) ...
+    token = str(uuid.uuid4())
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Vediamo se l'email esiste davvero
+    cursor.execute("SELECT username FROM utenti WHERE email = %s", (email,))
+    user = cursor.fetchone()
+    
+    if user:
+        # Salviamo il token nel DB
+        cursor.execute("INSERT INTO reset_tokens (email, token) VALUES (%s, %s)", (email, token))
+        conn.commit()
+        
+        # Link per il reset (cambia l'URL se sei su Render)
+        link = f"https://tuo-sito.onrender.com/reset-password/{token}" 
+        
+        msg = EmailMessage()
+        msg['Subject'] = 'Reset Password - Minecraft Hub'
+        msg['From'] = EMAIL_ADDRESS
+        msg['To'] = email
+        msg.set_content(f"Ciao! Usa questo link per cambiare la tua password: {link}\nIl link scadrà tra un'ora.")
+
+        try:
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+                smtp.send_message(msg)
+            res_msg = "Link inviato! Controlla la posta."
+        except Exception as e:
+            print(f"Errore mail: {e}")
+            res_msg = "Errore invio mail. Riprova più tardi."
+    else:
+        res_msg = "Email non trovata nel sistema."
+
+    conn.close()
+    return RedirectResponse(url=f"/?msg={res_msg}", status_code=303)
 
 @app.get("/reset-password/{token}", response_class=HTMLResponse)
 async def reset_password_page(token: str):
-    # ... (l'HTML per inserire la password nuova) ...
+    return f"""
+    <html>
+    <head><title>Nuova Password</title></head>
+    <body style="background: #0f1218; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh;">
+        <div style="background: #141820; padding: 30px; border-radius: 12px; width: 350px; text-align: center;">
+            <h2 style="color: #03dac6;">🆕 Nuova Password</h2>
+            <form action="/reset-password-final" method="post">
+                <input type="hidden" name="token" value="{token}">
+                <input type="password" name="new_password" placeholder="Nuova password" required 
+                       style="width: 100%; padding: 12px; margin: 15px 0; background: #1e2530; border: 1px solid #333; color: white; border-radius: 6px;">
+                <button type="submit" style="width: 100%; padding: 12px; background: #03dac6; color: black; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Aggiorna Password</button>
+            </form>
+        </div>
+    </body>
+    </html>
+    """
 
 @app.post("/reset-password-final")
 async def update_password(token: str = Form(...), new_password: str = Form(...)):
-    # ... (la logica finale che aggiorna il database) ...
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Controlliamo il token
+    cursor.execute("SELECT email FROM reset_tokens WHERE token = %s", (token,))
+    res = cursor.fetchone()
+    
+    if res:
+        email = res[0]
+        # Aggiorniamo la password
+        cursor.execute("UPDATE utenti SET password = %s WHERE email = %s", (new_password, email))
+        # Pulizia: cancelliamo il token usato
+        cursor.execute("DELETE FROM reset_tokens WHERE token = %s", (token,))
+        conn.commit()
+        conn.close()
+        return RedirectResponse(url="/?msg=Password aggiornata! Ora puoi loggare.", status_code=303)
+    
+    conn.close()
+    return RedirectResponse(url="/?msg=Token non valido o scaduto!", status_code=303)
 @app.get("/delete/{domanda_id}")
 async def delete_domanda(domanda_id: int):
     # Eseguiamo la cancellazione
