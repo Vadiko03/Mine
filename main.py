@@ -59,7 +59,7 @@ init_db()
 # Sotto init_db()
 ADMIN_PASSWORD = "29102003"
 EMAIL_ADDRESS = "sandruvadiko@gmail.com"  # <--- Metti la tua mail
-EMAIL_PASSWORD = "VadimS2003!" # <--- Metti la password per le app di Google
+EMAIL_PASSWORD = "hvim ibua zoif cqwv" # <--- Metti la password per le app di Google
 
 # Sostituisci "TuaPasswordSegreta" con quella che preferisci
 ADMIN_PASSWORD = "29102003"
